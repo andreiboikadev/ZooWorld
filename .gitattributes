@@ -1,0 +1,55 @@
+# =============================================================================
+# .gitattributes — ZooWorld
+# Normalize line endings across machines; mark binary asset types so they are
+# never line-ending-normalized (which would corrupt them).
+# Unity YAML files (.unity/.prefab/.asset/...) are intentionally left to
+# `* text=auto` auto-detection: text ones normalize, binary ones (e.g.
+# LightingData.asset) are detected and skipped — so they are NOT forced to text.
+#
+# No Git LFS configured: the prototype uses primitives, no large binaries.
+# If heavy art/audio is added later: `git lfs install` once per machine, then
+# track the types here (e.g. `*.fbx filter=lfs diff=lfs merge=lfs -text`).
+# =============================================================================
+
+# Auto-detect text files and normalize line endings (LF in repo)
+* text=auto
+
+# ---- Source / config: always text, LF ----
+*.cs        text diff=csharp
+*.shader    text
+*.cginc     text
+*.hlsl      text
+*.compute   text
+*.json      text
+*.xml       text
+*.txt       text
+*.md        text
+*.yml       text
+*.yaml      text
+*.asmdef    text
+*.asmref    text
+
+# ---- Known binary asset types: never normalize ----
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.bmp   binary
+*.tga   binary
+*.tif   binary
+*.psd   binary
+*.fbx   binary
+*.obj   binary
+*.blend binary
+*.wav   binary
+*.mp3   binary
+*.ogg   binary
+*.aif   binary
+*.ttf   binary
+*.otf   binary
+*.dll   binary
+*.so    binary
+*.a     binary
+*.bytes binary
+*.cubemap binary
+*.unitypackage binary
