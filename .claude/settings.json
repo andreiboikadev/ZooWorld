@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(git add *)",          "PowerShell(git add *)",
+      "Bash(git commit *)",       "PowerShell(git commit *)",
+      "Bash(git push *)",         "PowerShell(git push *)",
+      "Bash(git reset *)",        "PowerShell(git reset *)",
+      "Bash(git rebase *)",       "PowerShell(git rebase *)",
+      "Bash(git restore *)",      "PowerShell(git restore *)",
+      "Bash(git checkout *)",     "PowerShell(git checkout *)",
+      "Bash(git switch *)",       "PowerShell(git switch *)",
+      "Bash(git merge *)",        "PowerShell(git merge *)",
+      "Bash(git clean *)",        "PowerShell(git clean *)",
+      "Bash(git stash *)",        "PowerShell(git stash *)",
+      "Bash(git rm *)",           "PowerShell(git rm *)",
+      "Bash(git mv *)",           "PowerShell(git mv *)",
+      "Bash(git revert *)",       "PowerShell(git revert *)",
+      "Bash(git cherry-pick *)",  "PowerShell(git cherry-pick *)",
+      "Bash(git tag *)",          "PowerShell(git tag *)",
+      "Bash(git update-ref *)",   "PowerShell(git update-ref *)",
+      "Bash(git filter-branch *)","PowerShell(git filter-branch *)",
+      "Bash(git worktree *)",     "PowerShell(git worktree *)",
+      "Bash(git gc *)",           "PowerShell(git gc *)",
+      "Bash(git prune *)",        "PowerShell(git prune *)",
+      "Bash(git push)",           "PowerShell(git push)",
+      "Bash(git commit)",         "PowerShell(git commit)",
+      "Bash(git reset)",          "PowerShell(git reset)",
+      "Bash(git stash)",          "PowerShell(git stash)",
+      "Read(./.env)", "Read(./.env.*)", "Read(./secrets/**)",
+      "Read(./**/*.keystore)", "Read(./**/*.jks)", "Read(./**/*.p12)", "Read(./**/*.pem)"
+    ]
+  }
+}

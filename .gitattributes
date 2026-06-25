@@ -28,6 +28,12 @@
 *.yaml      text
 *.asmdef    text
 *.asmref    text
+*.inputactions text
+
+# ---- Unity binary-ish files: pin so auto-detect can't misclassify ----
+*.wlt       -text
+# When baked lighting / navmesh is added, pin the known-binary .asset paths, e.g.:
+#   **/LightingData.asset binary
 
 # ---- Known binary asset types: never normalize ----
 *.png   binary
