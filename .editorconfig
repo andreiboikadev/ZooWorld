@@ -47,6 +47,12 @@ dotnet_style_qualification_for_event = false:warning
 # ---- explicit access modifiers + readonly ----
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 dotnet_style_readonly_field = true:warning
+# IDE0044 (make-field-readonly) is intentionally DISABLED for Unity: the serializer assigns
+# [SerializeField] private fields via reflection, so they are never written in C# and the analyzer
+# flags them — but marking a serialized field `readonly` makes Unity SKIP it (Inspector/asset values
+# are lost). The readonly *preference* above still guides non-serialized fields in-IDE; only the hard
+# CI diagnostic is off. See docs/architecture/csharp-style.md (Unity serialization idiom).
+dotnet_diagnostic.IDE0044.severity = none
 
 # ---- expression-bodied members (allowed, not required) ----
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion

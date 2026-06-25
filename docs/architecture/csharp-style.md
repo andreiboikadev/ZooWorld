@@ -94,6 +94,10 @@ ordering & XML-doc coverage stay doc-only — catch in review). Naming violation
 
 - Inspector-editable data as **`[SerializeField] private T _field;`** — keep it private. The Inspector
   strips the `_` and Title-cases it (`_moveSpeed` → "Move Speed"), so `_camelCase` stays intact.
+- **Never mark a `[SerializeField]` field `readonly`** — Unity assigns serialized fields via reflection,
+  and `readonly` makes the serializer **skip** them (Inspector/asset values are lost). `IDE0044`
+  ("make field readonly") is therefore **disabled** in `.editorconfig`; the `readonly` preference still
+  applies to genuinely non-serialized private fields.
 - For an auto-property that must serialize: **`[field: SerializeField] public T Value { get; private set; }`**.
 - **`ScriptableObject` for designer config/data** (`AnimalDefinition`, `AnimalCatalog`, `SimConfig`,
   the movement-strategy SOs); treat config assets as **read-only at runtime**.
