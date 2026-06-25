@@ -26,22 +26,24 @@ Details: game-design.md §3/§7.
 
 **Dependency injection.** **VContainer 1.18.0**, installed via the **OpenUPM scoped registry**
 (`package.openupm.com`, scope `jp.hadashikick.vcontainer`) so `packages-lock.json` pins it. A
-manual **composition root** (`LifetimeScope`) wires everything; **no service locator, no
-singletons**. Justified by the brief explicitly inviting a DI framework. (VContainer was chosen
+manual **composition root** (`LifetimeScope`) wires everything; **no service locator, no STATIC
+singletons** (container scope-singletons are expected — see [ADR 0002](0002-animal-architecture.md)). Justified by the brief explicitly inviting a DI framework. (VContainer was chosen
 over the maintained Extenject fork for being modern, GC-free, source-gen, and actively released —
 weighed in the session notes.)
 
 **Architecture** (summary; full contract in `implementation-guardrails.md`, next). Composition
-over inheritance: `Animal` = `AnimalDefinition` (ScriptableObject) + `[SerializeReference]
-IMovementBehaviour` (Strategy) + binary **Prey/Predator** role + `strength`. One
+over inheritance: `Animal` = `AnimalDefinition` (ScriptableObject) + a `MovementBehaviour`
+ScriptableObject (Strategy) + binary **Prey/Predator** role + `strength`. (Animal-architecture
+specifics — SO strategies, the single `Simulation` tick owner, the interface seams, the end-of-step
+collision drain — are refined in [ADR 0002](0002-animal-architecture.md).) One
 `FoodChainResolver` owns predation (pair-authoritative, `dead`-guarded). `AnimalFactory` is the
 **pool's** spawn+configure API. Typed **Observer** events drive the uGUI counters and the "Tasty!"
 labels. **Object pooling** for animals + labels. **No ECS/DOTS.** Patterns shown: Strategy,
 Factory+Object-Pool, Observer, DI.
 
 **Code & assemblies.**
-- Root namespace **`ZooWorld`** — sub-namespaces `.Animals`, `.Spawning`, `.Predation`, `.UI`,
-  `.Config`, `.Composition`.
+- Root namespace **`ZooWorld`** — sub-namespaces `.Animals`, `.Spawning`, `.Predation`, `.Core`,
+  `.UI`, `.Config`, `.Composition`.
 - Folder layout: `Assets/_Project/{Scripts/{Runtime,Editor}, ScriptableObjects, Prefabs, Scenes,
   Materials}`; tests in `Assets/_Project/Tests/EditMode`.
 - Assembly definitions: **`ZooWorld.Runtime`**, **`ZooWorld.Editor`**, **`ZooWorld.Tests.EditMode`**

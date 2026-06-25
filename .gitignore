@@ -74,6 +74,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # ---- Project-specific ----
-# Innowise's internal task brief — kept local, captured in our own words in
+# Sakura Games' internal task brief — kept local, captured in our own words in
 # docs/product/game-design.md + README.md instead of redistributing the PDF.
 /Zoo world_2026.pdf
