@@ -1,0 +1,157 @@
+# =============================================================================
+# C# code style — ZooWorld.  Pairs with docs/architecture/csharp-style.md.
+# Honored by Visual Studio, VS Code (C# Dev Kit), Rider, and `dotnet format`/CI.
+# Unity 6.3 => C# 9 => namespaces are BLOCK-scoped (file-scoped needs C# 10).
+# =============================================================================
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+trim_trailing_whitespace = true
+insert_final_newline = true
+# Line endings normalized via .gitattributes (`* text=auto`), not pinned here.
+
+[*.{json,yml,yaml,xml,asmdef,asmref}]
+indent_size = 2
+
+[*.cs]
+indent_size = 4
+
+# ---- usings ----
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# ---- namespace style (block-scoped: C# 9 / Unity 6.3) ----
+csharp_style_namespace_declarations = block_scoped:warning
+
+# ---- braces (Allman) + always-braces ----
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_prefer_braces = true:warning
+
+# ---- 'var' only when the type is apparent ----
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# ---- 'this.' not required (the _ / s_ field prefix disambiguates) ----
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# ---- explicit access modifiers + readonly ----
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+
+# ---- expression-bodied members (allowed, not required) ----
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# ---- modern, C# 9-safe preferences ----
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_prefer_simple_using_statement = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_conditional_expression_over_assignment = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+
+# =============================================================================
+# Naming rules (IDE1006). Ordered most-specific FIRST (declaration order = precedence;
+# the const rule must stay above the static/instance field rules).
+# Convention (dotnet/runtime): _ / s_ are for FIELDS ONLY; methods & properties are
+# PascalCase at every accessibility.
+# =============================================================================
+dotnet_diagnostic.IDE1006.severity = warning
+
+# ---- naming styles ----
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.camel_case.capitalization = camel_case
+
+dotnet_naming_style.i_pascal.capitalization = pascal_case
+dotnet_naming_style.i_pascal.required_prefix = I
+
+dotnet_naming_style.t_pascal.capitalization = pascal_case
+dotnet_naming_style.t_pascal.required_prefix = T
+
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+dotnet_naming_style.s_camel.capitalization = camel_case
+dotnet_naming_style.s_camel.required_prefix = s_
+
+# ---- symbol groups ----
+dotnet_naming_symbols.types.applicable_kinds = class,struct,enum,delegate
+dotnet_naming_symbols.types.applicable_accessibilities = *
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_symbols.interfaces.applicable_accessibilities = *
+
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+dotnet_naming_symbols.type_parameters.applicable_accessibilities = *
+
+dotnet_naming_symbols.members.applicable_kinds = method,property,event
+dotnet_naming_symbols.members.applicable_accessibilities = *
+
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.applicable_accessibilities = *
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_symbols.public_fields.applicable_kinds = field
+dotnet_naming_symbols.public_fields.applicable_accessibilities = public
+
+dotnet_naming_symbols.nonpublic_static_fields.applicable_kinds = field
+dotnet_naming_symbols.nonpublic_static_fields.applicable_accessibilities = private,internal,protected,protected_internal,private_protected
+dotnet_naming_symbols.nonpublic_static_fields.required_modifiers = static
+
+dotnet_naming_symbols.nonpublic_fields.applicable_kinds = field
+dotnet_naming_symbols.nonpublic_fields.applicable_accessibilities = private,internal,protected,protected_internal,private_protected
+
+dotnet_naming_symbols.locals_params.applicable_kinds = parameter,local
+dotnet_naming_symbols.locals_params.applicable_accessibilities = *
+
+# ---- rules ----
+dotnet_naming_rule.interfaces_are_i_pascal.symbols = interfaces
+dotnet_naming_rule.interfaces_are_i_pascal.style = i_pascal
+dotnet_naming_rule.interfaces_are_i_pascal.severity = warning
+
+dotnet_naming_rule.types_are_pascal.symbols = types
+dotnet_naming_rule.types_are_pascal.style = pascal_case
+dotnet_naming_rule.types_are_pascal.severity = warning
+
+dotnet_naming_rule.type_parameters_are_t_pascal.symbols = type_parameters
+dotnet_naming_rule.type_parameters_are_t_pascal.style = t_pascal
+dotnet_naming_rule.type_parameters_are_t_pascal.severity = suggestion
+
+dotnet_naming_rule.members_are_pascal.symbols = members
+dotnet_naming_rule.members_are_pascal.style = pascal_case
+dotnet_naming_rule.members_are_pascal.severity = warning
+
+dotnet_naming_rule.constants_are_pascal.symbols = constants
+dotnet_naming_rule.constants_are_pascal.style = pascal_case
+dotnet_naming_rule.constants_are_pascal.severity = warning
+
+dotnet_naming_rule.public_fields_are_pascal.symbols = public_fields
+dotnet_naming_rule.public_fields_are_pascal.style = pascal_case
+dotnet_naming_rule.public_fields_are_pascal.severity = warning
+
+dotnet_naming_rule.nonpublic_static_fields_are_s_camel.symbols = nonpublic_static_fields
+dotnet_naming_rule.nonpublic_static_fields_are_s_camel.style = s_camel
+dotnet_naming_rule.nonpublic_static_fields_are_s_camel.severity = warning
+
+dotnet_naming_rule.nonpublic_fields_are_underscore_camel.symbols = nonpublic_fields
+dotnet_naming_rule.nonpublic_fields_are_underscore_camel.style = underscore_camel
+dotnet_naming_rule.nonpublic_fields_are_underscore_camel.severity = warning
+
+dotnet_naming_rule.locals_params_are_camel.symbols = locals_params
+dotnet_naming_rule.locals_params_are_camel.style = camel_case
+dotnet_naming_rule.locals_params_are_camel.severity = suggestion
