@@ -5,7 +5,7 @@
 | Milestone | M1 — pure core |
 | Depends on | — |
 | Touches scene/prefabs | no |
-| Status | ▫ not started |
+| Status | ✅ done |
 
 ## Goal
 
@@ -84,4 +84,34 @@ any scene content, DI wiring (T08).
 
 ## What was actually done
 
-—
+**Shipped 2026-06-25 on branch `feat/t01-config-and-seams`** — the full headless core.
+
+- **Config SOs** (`ZooWorld.Config`): `Role`, abstract stateless `MovementBehaviour`,
+  `AnimalDefinition`, `AnimalCatalog`, `SimConfig` (GDD §9 defaults) — all `[SerializeField] private`
+  + read-only accessors, `[CreateAssetMenu]`.
+- **Core structs + seams** (`ZooWorld.Core`): `MoveContext`, `MovementTuning`, `AnimalState`,
+  `Outcome` (+ a small `OutcomeKind` discriminator), `FieldBounds` (pure `Contains`/`Nearest`),
+  `PopulationSnapshot`, `AnimalDied`; `IClock`/`IRandom`/`ISpawnSequence`/`IOccupancyQuery` + prod
+  impls `UnityClock`/`SeededRandom`/`MonotonicSpawnSequence`. `MovementState` lives in `ZooWorld.Animals`.
+- **Tests** (`ZooWorld.Tests.EditMode`): fakes `FakeClock`/`FakeRandom`/`FakeSpawnSequence`/
+  `FakeOccupancy` + `FakesTests`, `MonotonicSpawnSequenceTests`, `SeededRandomTests`,
+  `FieldBoundsTests`, `ScriptableObjectCreationTests`, `OutcomeTests`.
+- **Placeholder assets** (`Assets/_Project/ScriptableObjects/`): `Frog` (Prey, w 0.45, cruise
+  `_speed` 0 — **intentional**: a jumper idles between leaps per GDD §7, so no cruise speed;
+  `JumpMove` reads jump distance/interval, not `Speed`), `Snake` (Predator, str 5, 2.5 m/s, w 0.30),
+  `AnimalCatalog` (2 defs), `SimConfig`; movement refs null until T02.
+
+**Decisions:** namespaces per brief (`Role`→`.Config`, `MovementState`→`.Animals`, the rest→`.Core`);
+added `OutcomeKind`; `#nullable enable` per file. Struct shapes match the brief exactly.
+
+**⚠ Carry-forward → T03:** `Outcome` carries `Position`, but the resolver input `AnimalState` has no
+position, so `FoodChainResolver` cannot fill `Outcome.Position` itself. Decide in T03: add a position
+to `AnimalState`, **or** have `Simulation` source it from the live body by `DeadSeq` at drain (so
+`Outcome.Position` would no longer need filling by the resolver). Also recorded in `Outcome.cs` `<remarks>`.
+
+**Verification (this session):** compiles with 0 Console errors; **EditMode 27/27 green** (re-run after
+asset authoring and after adding `OutcomeTests` — no regression); the 4 assets round-trip from disk
+cleanly (accessors read role/weight/strength/count back). Forbidden-API + Unity-statics grep clean
+(only `UnityClock` touches `Time`). Cross-checked by a 4-agent static audit + main-session MCP.
+
+**Commits:** `2ac736c` (asmdefs) · `72bdb88` (code + tests) · assets + this doc-close: _pending human commit_.

@@ -27,7 +27,7 @@ count) is alive at the end of M2; M3 is feedback + the deliverable.
 
 | ID | Title | Milestone | Depends on | Brief | Status |
 |---|---|---|---|---|---|
-| T01 | Config & seams (SOs, structs, interfaces + fakes) | M1 — pure core | — | ✓ | ▫ |
+| T01 | Config & seams (SOs, structs, interfaces + fakes) | M1 — pure core | — | ✓ | ✅ |
 | T02 | Movement rules (Wander/Jump/Linear SOs, BoundsReturn, JumpMath) + tests | M1 | T01 | · | ▫ |
 | T03 | FoodChainResolver (pure 2×2 + strength + dead-guard → Outcome) + tests | M1 | T01 | · | ▫ |
 | T04 | SpawnPlanner (interval, weighting, IOccupancyQuery placement, cap + predator-floor) + tests | M1 | T01 | · | ▫ |

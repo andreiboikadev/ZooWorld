@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cacc921f6779d949b079bb528a43f96, type: 3}
+  m_Name: SimConfig
+  m_EditorClassIdentifier: ZooWorld.Runtime::ZooWorld.Config.SimConfig
+  _spawnIntervalMin: 1
+  _spawnIntervalMax: 2
+  _maxPopulation: 120
+  _predatorFloor: 1
+  _clearanceRadius: 1
+  _maxPlacementAttempts: 10
+  _graceSeconds: 0.6
+  _bounceKick: 4
+  _linearDamping: 4
+  _wanderRerollMin: 0.8
+  _wanderRerollMax: 1.5
+  _tastyLifetime: 1
+  _tastyPoolSize: 16
