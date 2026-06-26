@@ -5,7 +5,7 @@
 | Milestone | M1 — pure core |
 | Depends on | T01 |
 | Touches scene/prefabs | no (pure rule + 2 value structs + EditMode tests; no assets/scene) |
-| Status | ▫ not started |
+| Status | ✅ done |
 
 ## Goal
 
@@ -181,4 +181,30 @@ predator, no eviction) over a `PopulationSnapshot`"*.)
   T08 (vertical slice).
 
 ## What was actually done
-—
+
+**Shipped 2026-06-26 on branch `feat/t04-spawn-planner`** — the pure spawn-decision rule, per the approved
+brief.
+
+- **Rule** (`ZooWorld.Spawning`): `SpawnPlanner` — `sealed`, stateless instance (DI singleton, §9), ctor
+  `(IReadOnlyList<SpeciesWeight>, in SpawnTuning)`. `NextInterval(IRandom)` = `Range(min, max)`;
+  `SelectSpeciesIndex(in PopulationSnapshot, IRandom) → int?` (predator-floor → cap pause → weighted-over-all,
+  via a private `WeightedPick(predatorsOnly, rng)` with the terminal last-index clause);
+  `TryFindSpawnPosition(in FieldBounds, IOccupancyQuery, IRandom, out Vector3)` (≤ `MaxPlacementAttempts`
+  full-bounds candidates, first `IsClear(ClearanceRadius)` wins, else false). `Vector3` only; no Unity statics.
+- **Value seams** (`ZooWorld.Core`): `SpeciesWeight {Role, Weight}`, `SpawnTuning {IntervalMin/Max,
+  MaxPopulation, PredatorFloor, ClearanceRadius, MaxPlacementAttempts}` — both `readonly struct`.
+- **Tests** (`ZooWorld.Tests.EditMode`): `SpawnPlannerTests` — 8 tests (interval range, weighted-by-cumulative,
+  cap pause, predator-floor force, predator-floor-overrides-cap, placement clear/all-blocked/retry).
+- **Doc-close propagation:** README **T06/T08** rows widened (pool max ≥ `MaxPopulation + PredatorFloor`;
+  `SpeciesWeight`/`SpawnTuning` build + catalog-order index contract + wiring-test + production
+  `IOccupancyQuery`).
+
+**Verification (this session, via MCP):** **EditMode 64/64 green** (56 prior + T04's 8); 0 Console errors
+(clean compile after a forced `scope: all` refresh/import — `scope: scripts` compile-only doesn't import new
+files, the T03 gotcha); `dotnet format --verify-no-changes` exit 0 on all 4 files; forbidden-API +
+Unity-statics grep clean in `.Spawning`. No Play smoke (deferred to T08 per the brief).
+
+**Deviations from the brief:** none. (The decision-4 optional was also applied — the
+`SimConfig.ClearanceRadius` tooltip now names it a query-sphere radius instead of a "center-distance check".)
+
+**Commit proposed:** `feat: T04 spawn planner` — _pending human commit_.
