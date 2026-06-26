@@ -16,7 +16,7 @@ MonoBehaviour:
   _displayName: Frog
   _role: 0
   _strength: 0
-  _movement: {fileID: 0}
+  _movement: {fileID: 11400000, guid: 4a602f22bc4c33d4bb74a51a250619d3, type: 2}
   _spawnWeight: 0.45
   _color: {r: 0.3, g: 0.78, b: 0.36, a: 1}
   _size: 1
