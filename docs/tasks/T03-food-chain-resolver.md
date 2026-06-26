@@ -5,7 +5,7 @@
 | Milestone | M1 — pure core |
 | Depends on | T01 |
 | Touches scene/prefabs | no (pure rule + EditMode tests only; no assets/scene) |
-| Status | ▫ not started |
+| Status | ✅ done |
 
 ## Goal
 
@@ -171,4 +171,29 @@ one death/one count, never both-die"*.)
   **T07**.
 
 ## What was actually done
-—
+
+**Shipped 2026-06-26 on branch `feat/t03-food-chain-resolver`** — the pure predation rule, per the
+approved brief.
+
+- **Rule** (`ZooWorld.Predation`): `FoodChainResolver` — `sealed`, stateless instance (DI singleton, §9);
+  `public Outcome Resolve(in AnimalState a, in AnimalState b)` — dead-guard first, then a tuple `switch`
+  over `(a.Role, b.Role)` (prey×prey → `Bounce`; prey/predator either order → prey `Death`; predator duel
+  → higher `Strength` survives, tie → lower `Seq`, via a private static `ResolveDuel`). Spatial fields left
+  `Vector3.zero`; built only via the T01 `Outcome` factories.
+- **Tests** (`ZooWorld.Tests.EditMode`): `FoodChainResolverTests` — 9 tests, all matrix cells + strength +
+  strength-outranks-seq + tie + order-independence + dead-guard (duel **and** prey branches) +
+  exactly-one-victim. `Prey`/`Pred` fixture helpers.
+- **Doc-close propagation (scope decision 1):** `Outcome.cs` `<remarks>` updated to the resolved answer
+  (resolver leaves `Position`/`BounceNormal` zero; the Simulation sources from the live bodies); README T07
+  row widened with the position/normal sourcing.
+
+**Verification (this session, via MCP):** **EditMode 56/56 green** (T01's 27 + T02's 20 + T03's 9); 0
+Console errors (clean compile — note: the first `refresh` requested compile only, not an asset import, so
+the new files were initially excluded and the suite ran 47; forcing `scope: all` imported them → 56);
+`dotnet format --verify-no-changes` exit 0 on both files; forbidden-API + Unity-statics grep clean in
+`.Predation`. No Play smoke (deferred to T07 per the brief).
+
+**Deviations from the brief:** none. (`using` list dropped `OutcomeKind` and the `Prey` helper carries
+`bool dead = false` — both per the validated brief.)
+
+**Commit proposed:** `feat: T03 food-chain resolver` — _pending human commit_.

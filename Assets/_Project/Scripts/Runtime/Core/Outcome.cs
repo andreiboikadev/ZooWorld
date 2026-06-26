@@ -12,9 +12,11 @@ namespace ZooWorld.Core
     /// <see cref="OutcomeKind.Death"/> (carries the victim's seq/role/position and the "Tasty!" flag).
     /// </summary>
     /// <remarks>
-    /// First-cut shape for T01. Exactly which fields the resolver fills is settled in T03 — notably
-    /// whether <see cref="Position"/> is sourced here or by the <c>Simulation</c> from the live body
-    /// at drain time (the resolver's <see cref="AnimalState"/> input carries no position).
+    /// First-cut shape for T01. Resolved in T03: the <c>FoodChainResolver</c> fills only the logical
+    /// fields (<see cref="Kind"/>/<see cref="DeadSeq"/>/<see cref="VictimRole"/>/<see cref="RaiseTasty"/>)
+    /// and leaves <see cref="Position"/> and <see cref="BounceNormal"/> at <see cref="Vector3.zero"/>; the
+    /// <c>Simulation</c> (T07) sources the spatial data (victim/predator positions, contact normal) from
+    /// the live bodies at drain time (the resolver's <see cref="AnimalState"/> input carries no position).
     /// </remarks>
     public readonly struct Outcome
     {
