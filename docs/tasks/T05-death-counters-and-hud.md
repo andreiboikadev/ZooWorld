@@ -5,7 +5,7 @@
 | Milestone | M1 — pure core |
 | Depends on | T01 |
 | Touches scene/prefabs | **no** — fully headless. The concrete uGUI `HudView`, the `UnityEngine.UI` asmdef ref, the Canvas/labels, DI wiring, and the live smoke are **T08** (scope decision 1) |
-| Status | ▫ not started |
+| Status | ✅ done |
 
 ## Goal
 
@@ -226,4 +226,31 @@ counts"* — a bounce raises **no** `AnimalDied`, so it never reaches the counte
 
 ## What was actually done
 
-`—` (filled on close: shipped types, deviations, the commit, the date.)
+**Implemented 2026-06-26** — the headless death-accounting subsystem, per the validated brief.
+
+- **Observer channel** (`ZooWorld.Core`): `AnimalDiedHandler` (delegate over `in AnimalDied`),
+  `IAnimalDeathSignal` (subscribe), `AnimalDeathSignal : IAnimalDeathSignal` (`Raise(in AnimalDied)` →
+  `Died?.Invoke(in e)`).
+- **Pure HUD model + presenter** (`ZooWorld.UI`): `DeathCounters : IDisposable` (subscribes in ctor,
+  `switch (e.Role)` increments exactly one of `DeadPrey`/`DeadPredators`, raises `event Action Changed`,
+  unsubscribes in `Dispose`); the `IHudView` seam; `HudPresenter : IStartable, IDisposable` (formats the
+  exact §8 strings → `IHudView`, initial push in `Start()`, unsubscribes in `Dispose`).
+- **Tests** (`ZooWorld.Tests.EditMode`): `FakeHudView`; `DeathCountersTests` (7: zero-start, per-role
+  increment, accumulation, `Changed` cadence, position-ignored, dispose-unsubscribe); `HudPresenterTests`
+  (5: initial 0/0, exact §8 formats, independent accumulation, dispose-stops); `DeathCountersAllocationTests`
+  (1: zero-alloc). **13 new tests.**
+
+**Deviation from the brief (1):** the zero-alloc test ships in its own file `DeathCountersAllocationTests.cs`,
+not inside `DeathCountersTests`. The brief's pitfall (d) said to *fully-qualify*
+`UnityEngine.TestTools.Constraints.Is.Not.AllocatingGCMemory()`, but that does not compile —
+`AllocatingGCMemory` is an **extension method** on `ConstraintExpression`, so it needs the namespace `using`
+(which also imports `Is`, shadowing NUnit's `Is` used by the other counter tests). Isolating it with
+`using Is = UnityEngine.TestTools.Constraints.Is;` is the standard Unity pattern and keeps the assertion 1:1
+with the brief's intent (§14 zero-alloc). No design change.
+
+**Verification (this session, via MCP):** **EditMode 77/77 green** (64 prior + T05's 13; 2.47 s); **0 Console
+errors** (only an unrelated MCP-bridge WebSocket warning); `dotnet format --verify-no-changes` exit 0 on the
+Runtime + Tests new files; forbidden-API / Unity-statics grep clean in `.UI` + the `.Core` signal. **No Play
+smoke** (headless by design — the live HUD tick is smoke-verified in T08).
+
+**Commit proposed:** `feat: T05 death counters + AnimalDied Observer + HUD presenter` — _pending human commit_.

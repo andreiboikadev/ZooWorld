@@ -1,52 +1,56 @@
 # Current Status
 Last updated: 2026-06-26
-Updated by: AI session (T05 — brief authoring + adversarial review)
-Branch/context: on `dev` (clean before this change); T01–T04 merged. **T05 brief written & validated — not
-yet implemented.**
+Updated by: AI session (T05 — DeathCounters + AnimalDied Observer + HUD presenter)
+Branch/context: on `dev`; T01–T04 merged. **T05 implemented & verified — pending human commit.**
 
 ## Current Objective
-Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 (pure core): T01–T04 done & merged**
-(`35126c2`/#4 latest). **T05 (DeathCounters + `AnimalDied` Observer + HUD presenter)** is the last M1 task —
-its brief is now authored; implementation next. Then M2 adapters (T06–T08).
+Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 (pure core) is COMPLETE — T01–T05
+done** (T05 verified, pending commit). Next: **M2 adapters** — T06 (`Animal` dumb adapter + physics +
+pooling), T07 (`Simulation` tick/drain), T08 (spawner + DI wiring + HUD scene → vertical slice runs).
 
 ## Status
-**T05 brief authored, reviewed, validated — code NOT yet written.** Brief:
-`docs/tasks/T05-death-counters-and-hud.md` (`Brief ✓`). Resolved scope:
-- **In T05 (headless, EditMode-tested):** the `AnimalDied` Observer channel — `AnimalDiedHandler` /
-  `IAnimalDeathSignal` / `AnimalDeathSignal` (`.Core`); the pure `DeathCounters` + `HudPresenter` +
-  `IHudView` seam (`.UI`); `FakeHudView` + `DeathCountersTests` + `HudPresenterTests`.
-- **Deferred to T08:** the concrete uGUI `HudView`, the `UnityEngine.UI` asmdef ref, the Canvas/labels, DI
-  wiring, and the Play smoke (M1 stays headless; nothing raises `AnimalDied` until T07, no scene until T08).
-- **Key calls:** `event Action Changed` (lean MVP, not a struct payload — §13 struct-payload rule is for
-  domain events); `HudPresenter : IStartable` (so VContainer calls `Start()`); counts never reset;
-  `DeathCounters` lives in `.UI` (its HUD subsystem).
+**T05 (DeathCounters + `AnimalDied` Observer + HUD presenter) DONE — pending commit.** Shipped the headless
+death-accounting subsystem per the validated brief (`docs/tasks/T05-death-counters-and-hud.md`):
+- **Observer channel** (`ZooWorld.Core`): `AnimalDiedHandler` (delegate over `in AnimalDied`),
+  `IAnimalDeathSignal` (subscribe), `AnimalDeathSignal.Raise(in AnimalDied)` (the raise side for T07).
+- **Pure HUD** (`ZooWorld.UI`): `DeathCounters : IDisposable` (one increment per death by `Role`, `event
+  Action Changed`, unsubscribe on dispose); `IHudView` seam; `HudPresenter : IStartable, IDisposable`
+  (exact GDD §8 strings → `IHudView`, initial 0/0 in `Start()`).
+- **13 EditMode tests** (`DeathCountersTests` 7 + `DeathCountersAllocationTests` 1 + `HudPresenterTests` 5)
+  with `FakeHudView`.
+- Deferred to **T08** (per brief decision 1): the concrete uGUI `HudView`, `UnityEngine.UI` asmdef ref,
+  Canvas/labels, DI wiring, Play smoke.
 
 T01–T04 merged to `dev`: `c7cc632`/#1, `51c9948`/#2, `a731a0d`/#3, `35126c2`/#4.
 
 ## Checks Run (this session, via MCP)
-- Unity MCP on (`ZooWorld@…`, 6000.3.16f1); Console **0 errors / 0 warnings**; `git status` clean (pre-edit).
-- **Adversarial multi-agent review of the T05 brief** (5 dimensions → per-finding verify → completeness
-  critic): **2 issues fixed** in the brief — ARCH-01 (`HudPresenter` must implement `IStartable` or
-  VContainer never calls `Start()` → blank HUD) and the T07 depends-on gap (now `T02, T03, T05, T06`);
-  **1 resolved** (`DeathCounters` in `.UI`); the rest refuted (incl. alloc-in-EditMode verified viable,
-  nullability clean). No code yet ⇒ no EditMode run this session; the pure-rule tests land with the T05 impl.
+- **EditMode 77/77 green** (64 prior + T05's 13; 2.47 s; `ZooWorld.Tests.EditMode`).
+- **0 Console errors** (only an unrelated MCP-bridge WebSocket warning).
+- `dotnet format --verify-no-changes` **exit 0** on the Runtime + Tests new files; forbidden-API /
+  Unity-statics grep **clean** in `.UI` + the `.Core` signal.
+- **No Play smoke** in T05 (headless by design — the live HUD tick is verified in T08).
 
-## Decisions Made (T05 brief)
-- See the brief's "Scope decisions (resolved)": view↔T08 split, Observer seam shape, `Action` notification,
-  legacy `Text` (chosen in T08), `.UI` namespace, no GDD §9 tunables.
+## Decisions Made (T05)
+- See the brief's "Scope decisions (resolved)": view↔T08 split, Observer seam (concrete `Raise` /
+  interface subscribe), `event Action Changed` (lean MVP), legacy `Text` chosen in T08, `.UI` namespace,
+  no GDD §9 tunables.
+- **One deviation:** the zero-alloc test is in its own file `DeathCountersAllocationTests.cs` — the brief's
+  "fully-qualify the `Is` constraint" guidance doesn't compile (`AllocatingGCMemory` is an extension method,
+  needs the namespace `using` + an `Is` alias that would shadow NUnit's `Is`). Same assertion, isolated.
 
 ## Blockers
 - None.
 
 ## Open / carry-forward
-- **→ T05 implement:** write the 6 runtime types + 3 test files per the brief; EditMode green (64 prior +
-  T05's new, 0 Console errors) via MCP `run_tests` with `Gameplay.unity` active; `dotnet format` +
-  forbidden-API grep clean. No Play smoke in T05 (headless).
 - **→ T07:** `Simulation` raises `AnimalDied` via `AnimalDeathSignal.Raise`, sourcing the victim position
-  from the live body (matrix T07 deps now include T05).
-- **→ T08:** HUD view + Canvas + `UnityEngine.UI` ref + DI wiring + smoke (see the widened T08 matrix row).
+  from the live body (matrix T07 deps include T05).
+- **→ T08:** HUD view + Canvas + `UnityEngine.UI` asmdef ref + DI bindings (`AnimalDeathSignal` as
+  `IAnimalDeathSignal` + concrete raiser; `DeathCounters`; `HudPresenter` via `RegisterEntryPoint` —
+  `IStartable`/`IDisposable`) + Play smoke (counters tick on screen).
 
 ## Next Actions
-1. **Human (git only):** commit the T05 brief + plan sync as
-   `docs: T05 brief (DeathCounters + AnimalDied Observer + HUD presenter) + matrix/status sync`.
-2. Implement **T05** per the validated brief (pure rules + tests, headless).
+1. **Human (git only):** commit the working tree as
+   `feat: T05 death counters + AnimalDied Observer + HUD presenter` (channel + counters + presenter + seam +
+   13 tests + `.meta` + doc-close: brief Status/What-was-done, matrix row, this doc). The brief + matrix/status
+   sync from the prior step are uncommitted in the same tree, so this single `feat` commit covers them.
+2. Start **T06** (`Animal` dumb adapter + physics profile + pooling) — first M2 task.
