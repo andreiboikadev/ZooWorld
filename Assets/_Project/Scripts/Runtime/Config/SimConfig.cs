@@ -25,7 +25,7 @@ namespace ZooWorld.Config
         [Tooltip("Minimum predators kept on screen (anti-deadlock floor).")]
         [Min(0)]
         [SerializeField] private int _predatorFloor = 1;
-        [Tooltip("Spawn clearance radius in metres (center-distance check).")]
+        [Tooltip("Placement clearance query-sphere radius (m); effective centre separation = this + body radius.")]
         [Min(0f)]
         [SerializeField] private float _clearanceRadius = 1f;
         [Tooltip("Placement attempts before skipping a spawn tick.")]
