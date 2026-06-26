@@ -1,63 +1,55 @@
 # Current Status
-Last updated: 2026-06-25
-Updated by: AI session (T01 — config & seams)
-Branch/context: `feat/t01-config-and-seams` (off `dev`)
+Last updated: 2026-06-26
+Updated by: AI session (T02 — movement rules)
+Branch/context: `feat/t02-movement-rules` (off `dev`)
 
 ## Current Objective
-Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 (pure core) in progress** —
-T01 done; T02–T05 next (movement rules, food-chain resolver, spawn planner, counters), all
-headless-testable before any scene exists.
+Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 (pure core) progressing** — T01 + T02
+done; T03–T05 next (food-chain resolver, spawn planner, counters), all headless-testable.
 
 ## Status
-**T01 (Config & seams) COMPLETE.** Shipped the headless core:
-- **Config SOs** (`ZooWorld.Config`): `Role`, abstract stateless `MovementBehaviour`,
-  `AnimalDefinition`, `AnimalCatalog`, `SimConfig` (GDD §9 defaults).
-- **Core structs + seams** (`ZooWorld.Core`): `MoveContext`, `MovementTuning`, `AnimalState`,
-  `Outcome` (+ `OutcomeKind`), `FieldBounds` (`Contains`/`Nearest`), `PopulationSnapshot`,
-  `AnimalDied`; `IClock`/`IRandom`/`ISpawnSequence`/`IOccupancyQuery` +
-  `UnityClock`/`SeededRandom`/`MonotonicSpawnSequence`. `MovementState` in `ZooWorld.Animals`.
-- **Tests** (`ZooWorld.Tests.EditMode`): the four fakes + 6 test classes (incl. `OutcomeTests`).
-- **Placeholder assets** (`Assets/_Project/ScriptableObjects/`): `Frog`, `Snake`, `AnimalCatalog`,
-  `SimConfig` — movement refs null until T02.
-- 3 asmdefs (`ZooWorld.Runtime`/`.Editor`/`.Tests.EditMode`) + `Assets/_Project` layout in place.
+**T02 (Movement rules) COMPLETE.** Shipped the movement layer:
+- Pure rules (`ZooWorld.Animals`): `JumpMath`, `BoundsReturn`, `MovementHeading`.
+- Stateless strategy SOs: `WanderMove`, `LinearMove`, `JumpMove`.
+- `MovementTuning` extended (`WanderRerollMin`/`WanderRerollMax`).
+- Strategy assets under `ScriptableObjects/Movement/`; wired `Frog.movement → JumpMove`,
+  `Snake.movement → LinearMove`.
+- 20 new EditMode tests (7 classes).
+
+(T01 — config SOs, core structs/seams, fakes — merged earlier as `c7cc632` / PR #1.)
 
 ## Checks Run
-- **EditMode: 27/27 green** (`ZooWorld.Tests.EditMode`; re-run after asset authoring and after adding
-  `OutcomeTests` — no regression).
-- Compiles with **0 Console errors** (Runtime + Tests + asset authoring).
-- Placeholder assets round-trip from disk cleanly (accessors read role/weight/strength/count/maxPop back).
-- Forbidden-API + Unity-statics grep clean (only `UnityClock` uses `Time`; no `Physics`/`Camera.main`/
-  `GameObject.Find`/`.material`/DOTween anywhere).
-- **Ultracode verification:** 4-agent static audit (criteria/style/adversarial/docs) + main-session MCP
-  cross-check — pass; surfaced & fixed an `OutcomeTests` coverage gap; `Frog._speed=0` reviewed → kept
-  (intentional, GDD §7 — see Decisions).
-- **Codestyle gate:** `dotnet format --verify-no-changes` → **green** on `ZooWorld.Runtime` (0 `IDE1006`,
-  formatting/whitespace clean) after exempting `IDE0044` for Unity `[SerializeField]` fields
-  (`.editorconfig` + `csharp-style.md`) — they cannot be `readonly` without breaking serialization.
+- **EditMode: 47/47 green** (T01's 27 + T02's 20; `ZooWorld.Tests.EditMode`).
+- 0 Console errors; `dotnet format --verify-no-changes` green on Runtime; forbidden-API + Unity-statics
+  grep clean in `.Animals`.
 
-## Decisions Made
-- Namespaces (per brief): `Role`→`.Config`, `MovementState`→`.Animals`, structs/seams/impls→`.Core`.
-- Added a small `OutcomeKind` discriminator (None/Bounce/Death) for `Outcome`. `#nullable enable` per file.
-- Stack/architecture per ADR 0001/0002 unchanged.
-- `Frog._speed = 0` is **intentional** (not a placeholder): GDD §7 — jumpers idle between leaps, so a
-  frog has no cruise speed; `JumpMove` reads jump distance/interval, not `Speed`. T02 just wires the SO.
+## Decisions Made (T02)
+- `LinearMove` = straight (no re-roll), turned only by bounds-return; `WanderMove` re-rolls but is
+  unassigned to a shipped species yet.
+- `JumpMath.BurstSpeed = jumpDistance × linearDamping` (damp-then-move closed form, dt-independent; = 6
+  for 1.5 m @ damping 4).
+- `JumpMove` leap = one-shot impulse + physics-damping coast (PINNED for T07; a `Vector3.zero` return
+  means "do not drive the body", never "set velocity to zero").
+- `MovementTuning` carries the wander-reroll globals.
+
+## Scene infra (NOT a T02 deliverable)
+- The MCP test runner refuses to start unless the editor's active scene is saved. Added
+  `Assets/_Project/Scenes/Gameplay.unity` (Camera + Directional Light) + Build Settings entry, and
+  **removed the junk default `Assets/Scenes/SampleScene.unity`** + the empty `Assets/Scenes/` folder.
+  Proposed as a separate `chore:` commit.
 
 ## Blockers
 - None.
 
 ## Open / carry-forward
-- **→ T03:** `Outcome` carries `Position` but the resolver input `AnimalState` has no position, so
-  `FoodChainResolver` can't fill it. Decide in T03: add a position to `AnimalState`, **or** have
-  `Simulation` source it from the live body by `DeadSeq` at drain (so `Outcome.Position` would no
-  longer need filling by the resolver). Recorded in `Outcome.cs` `<remarks>` + the T01 brief.
+- **→ T03:** `Outcome.Position` has no source in the resolver input `AnimalState` (from T01) — decide there.
+- **→ T06/T07:** the spawn pool-reset must seed a random `Heading` (LinearMove has no self-heal) plus
+  `NextLeapTime`/`NextHeadingReroll`; the `JumpMove` leap-coast must be applied as an impulse (not
+  velocity-set-then-zero); `JumpMath`'s live leap distance is calibrated in the T07 Play smoke.
 
 ## Next Actions
-1. **Human:** commit the placeholder assets + these doc updates (closes T01); push branch + open PR → `dev`.
-2. Start **T02** (movement rules: `WanderMove`/`JumpMove`/`LinearMove` SOs + `BoundsReturn` + `JumpMath`)
-   with EditMode tests; wire the now-null movement refs on the `Frog`/`Snake` assets.
-
-## Commits (this branch)
-- `2ac736c` build: asmdefs + folder layout
-- `72bdb88` feat(core): config, structs, seams + EditMode tests
-- _pending (human):_ (a) `.editorconfig` + `csharp-style.md` — IDE0044/`[SerializeField]` fix;
-  (b) T01 assets + `OutcomeTests` + doc-close
+1. **Human (git only):** commit the working tree as 2 commits — `feat: T02 movement rules` (code + tests +
+   assets + doc-close) and `chore: replace default scene` (Gameplay + Build Settings − SampleScene) — then
+   push + PR → `dev`. **This doc-close is final** — a fresh session starts clean on T03 with no doc records
+   left open (git log is the source of truth for what is committed).
+2. Start **T03** (FoodChainResolver — pure 2×2 + strength + dead-guard → `Outcome` + EditMode tests).
