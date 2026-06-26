@@ -31,10 +31,10 @@ count) is alive at the end of M2; M3 is feedback + the deliverable.
 | T02 | Movement rules (Wander/Jump/Linear SOs, BoundsReturn, JumpMath) + tests | M1 | T01 | ✓ | ✅ |
 | T03 | FoodChainResolver (pure 2×2 + strength + dead-guard → Outcome) + tests | M1 | T01 | ✓ | ✅ |
 | T04 | SpawnPlanner (interval, weighting, IOccupancyQuery placement, cap + predator-floor) + tests | M1 | T01 | ✓ | ✅ |
-| T05 | DeathCounters + `AnimalDied` event + HUD presenter/view (uGUI) + test | M1 | T01 | · | ▫ |
+| T05 | DeathCounters + `AnimalDied` Observer channel + HUD presenter + `IHudView` seam (uGUI `HudView` → T08) + tests | M1 | T01 | ✓ | ▫ |
 | T06 | `Animal` dumb adapter + physics profile + pooling (pool max ≥ MaxPopulation + PredatorFloor) + reset contract | M2 — adapters | T01 | · | ▫ |
-| T07 | `Simulation` tick owner: MoveContext + grace + bounds + collision enqueue→drain→resolve→events + prey-prey impulse + Outcome position/normal sourcing (from live bodies) | M2 | T02, T03, T06 | · | ▫ |
-| T08 | Spawner (UniTask `IAsyncStartable`) + factory + pools (max ≥ MaxPopulation + PredatorFloor) + `SpeciesWeight`/`SpawnTuning` build (1:1 catalog-order index contract + wiring-test) + production `IOccupancyQuery` (`Physics.CheckSphere`) + `FieldBounds` (camera frustum) + `GameLifetimeScope` wiring → **vertical slice runs** | M2 | T04, T05, T07 | · | ▫ |
+| T07 | `Simulation` tick owner: MoveContext + grace + bounds + collision enqueue→drain→resolve→events (raises `AnimalDied` via T05's `AnimalDeathSignal`) + prey-prey impulse + Outcome position/normal sourcing (from live bodies) | M2 | T02, T03, T05, T06 | · | ▫ |
+| T08 | Spawner (UniTask `IAsyncStartable`) + factory + pools (max ≥ MaxPopulation + PredatorFloor) + `SpeciesWeight`/`SpawnTuning` build (1:1 catalog-order index contract + wiring-test) + production `IOccupancyQuery` (`Physics.CheckSphere`) + `FieldBounds` (camera frustum) + HUD wiring (`HudView` uGUI + Canvas/labels + `UnityEngine.UI` asmdef ref + bind signal/counters/presenter) + `GameLifetimeScope` wiring → **vertical slice runs** | M2 | T04, T05, T07 | · | ▫ |
 | T09 | Feedback (UniTask-lerp Tasty!/pop/death billboard + AnimationCurve jump arc) + scene bootstrap + Rabbit (data-only) + `MaterialPropertyBlock` + Windows build + README/ARCHITECTURE | M3 — ship | T08 | · | ▫ |
 
 Pre-task setup (not a task; done/in-flight): Unity 6.3 URP baseline, VContainer, `.editorconfig`,
