@@ -5,7 +5,7 @@
 | Milestone | M2 — adapters |
 | Depends on | T01 |
 | Touches scene/prefabs | **yes** — the `Animal` prefab + a `PhysicsMaterial` asset + the **Animal** physics layer + the Animal×Animal collision-matrix entry (no scene edits; the prefab is instantiated by the pool, placed into the scene only at T08) |
-| Status | ▫ not started |
+| Status | ✅ done |
 
 ## Goal
 
@@ -268,7 +268,57 @@ profile, the reset, the pool bookkeeping — is unit-tested here; the *live* phy
   species into the wrong pool, with no failing test.
 - **→ T07 (frame-1 leap):** the `Simulation` seeds `NextLeapTime = clock.Now + JumpInterval` when an animal
   is spawned/first-ticked (T06's clockless reset leaves it `0`, which would leap on frame 1 — GDD §11).
+- **→ T07 (deferred from the post-implementation file-audit):** add a **double-despawn guard** to `Despawn`
+  (e.g. an internal `_pooled` flag set in `CreatePooled`/`Despawn`, cleared in `Spawn`, early-returning if
+  already pooled) — `Despawn` has no liveness/ownership check, so a repeated `Despawn(a)` would double-push
+  and alias. Deferred because **T07 is `Despawn`'s first real caller** (the drain despawns each death once
+  via the dead-guard, so it can't manifest in T06). (The audit's other items — `Dispose` `Array.Clear` and
+  the test hardening — were applied at T06 close; the audit was clean on code/scope/docs.)
 
 ## What was actually done
 
-`—` (filled on close: shipped types/assets, deviations, the commit, the date.)
+**Implemented 2026-06-26** — the Animal adapter + the AnimalFactory pool + the reset contract, per the
+validated brief.
+
+- **`AnimalSpec`** (`ZooWorld.Core`): the `readonly struct` value seam (Role/Strength/Size/Mass/SpawnWeight/
+  `MovementBehaviour?`/`MovementTuning`) the factory consumes (built from the SOs at T08).
+- **`Animal`** (`ZooWorld.Animals`): a sealed MonoBehaviour dumb adapter — lazy `Body` getter;
+  `Role`/`Strength`/`Seq`/`IsDead`/`Movement`/`Tuning`/`ref MovementState` accessors; `OnSpawn` (full
+  Rigidbody profile + scale + state + movement-state reset), `OnDespawn`, `MarkDead`; `internal PoolIndex`.
+  No `Update`/`FixedUpdate`/`OnCollisionEnter`, no service deps.
+- **`AnimalFactory`** (`ZooWorld.Animals`): the one-layer create+pool+configure — `Stack<Animal>[]` per
+  index, prewarm `round(weight×maxPop)`, cap `MaxPopulation + PredatorFloor`, lazy bounded growth, reuse;
+  `Spawn`/`Despawn`/`Dispose`/`Capacity`/`FreeCount`/`InstantiatedCount`; `IDisposable`, edit-mode-safe
+  `Dispose`.
+- **Assets:** the **Animal** layer (slot 8); `Prefabs/Animal.prefab` (sphere + Rigidbody + SphereCollider +
+  the material + `Animal`, on the Animal layer); `Physics/AnimalPhysicsMaterial.asset` (bounciness/friction
+  0, combine Minimum). Animal×Animal collides by default (no matrix edit; the Floor pairing is T08).
+- **Tests** (`ZooWorld.Tests.EditMode`): `AnimalTests` (5) + `AnimalFactoryTests` (7) — **12 new** (incl. a
+  post-audit cross-index `Despawn` routing test; `Reuse_ClearsStaleState` also gained an independent
+  `OnDespawn` velocity assertion + full 4-field `MovementState` reset coverage).
+
+**Deviations from the brief (2, both mechanical — intent unchanged):**
+1. **`PhysicsMaterial` saved as `.asset`, not `.physicsMaterial`.** The brief's `.physicsMaterial` +
+   `AssetDatabase.CreateAsset` raised a Unity Exception-level console message (*"CreateAsset() should not be
+   used to create a file of type 'physicsMaterial' … change the file type to '*.asset'"*). Applied Unity's
+   own suggested fix (`.asset`); the prefab's collider references it by GUID (extension-agnostic), so it's
+   functionally identical and warning-free.
+2. **`Animal._rigidbody` declared `= null!`** (not the brief's bare `private Rigidbody _rigidbody;`). Under
+   `#nullable enable` a bare non-nullable uninitialized field is CS8618; `= null!` + the brief's exact lazy
+   `Body` getter (works via Unity's overloaded `!=`) is the standard warning-free idiom. Same behaviour.
+
+**Post-audit hardening (applied at close):** a post-implementation file-audit (clean on code/scope/docs;
+all 5 findings minor, code verified correct) surfaced test-coverage gaps + one latent `Dispose` invariant;
+applied — `Array.Clear(_countPerIndex)` in `Dispose`, the cross-index `Despawn` routing test, and the
+`OnDespawn`/4-field-`MovementState` assertions noted above. The `Despawn` double-despawn guard is deferred
+to **T07** (its first real caller).
+
+**Verification (this session, via MCP):** **EditMode 89/89 green** (77 prior + T06's 12; re-run after the
+asset/Play work and the post-audit hardening; ~2.6 s); **0 Console errors/warnings** (after recreating the material as `.asset`);
+`dotnet format --verify-no-changes` exit 0 on all 5 files; forbidden-API / Unity-statics grep clean in
+`.Animals` (the only hit is the XML-doc comment naming the forbidden methods). **Play smoke:** one
+factory-spawned animal under a downward+lateral velocity → `y` stayed `0.0000` (FreezePositionY), moved
+~0.68 m on XZ (free), gravity off, never slept (sleepThreshold 0); despawn→respawn reused the same instance
+with no Instantiate churn.
+
+**Commit proposed:** `feat: T06 animal adapter + physics + AnimalFactory pool` — _pending human commit_.

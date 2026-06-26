@@ -1,0 +1,101 @@
+#nullable enable
+
+using UnityEngine;
+using ZooWorld.Config;
+using ZooWorld.Core;
+
+namespace ZooWorld.Animals
+{
+    /// <summary>
+    /// The runtime half of an animal — a DUMB adapter: a Rigidbody + per-animal state + pool-reset hooks,
+    /// with NO <c>Update</c>/<c>FixedUpdate</c>/<c>OnCollisionEnter</c> and NO service dependencies. The
+    /// T07 <c>Simulation</c> owns the tick and the collision pipeline; the <c>AnimalFactory</c> takes this
+    /// from / returns it to a pool, configuring it from an <see cref="AnimalSpec"/> at spawn.
+    /// </summary>
+    public sealed class Animal : MonoBehaviour
+    {
+        private Rigidbody _rigidbody = null!;
+        private MovementState _movementState;
+
+        /// <summary>
+        /// The body, resolved lazily on first access (cached thereafter) — NOT only in <c>Awake</c>, which
+        /// does not run for objects built via <c>AddComponent</c>/<c>Instantiate</c> in EditMode tests.
+        /// <c>GetComponent</c> fires once, at take/return time — never in the T07 per-frame tick.
+        /// </summary>
+        public Rigidbody Body => _rigidbody != null ? _rigidbody : (_rigidbody = GetComponent<Rigidbody>());
+
+        /// <summary>Predation role (read by the Simulation to build its resolver state).</summary>
+        public Role Role { get; private set; }
+
+        /// <summary>Predator-vs-predator winner key (higher wins).</summary>
+        public int Strength { get; private set; }
+
+        /// <summary>Monotonic spawn id, assigned at take-from-pool; breaks predator strength ties.</summary>
+        public long Seq { get; private set; }
+
+        /// <summary>True once the Simulation has resolved this animal dead this step (idempotency guard).</summary>
+        public bool IsDead { get; private set; }
+
+        /// <summary>The movement strategy this animal ticks (null until T07 wires the tick).</summary>
+        public MovementBehaviour? Movement { get; private set; }
+
+        /// <summary>Per-animal movement constants the strategy reads.</summary>
+        public MovementTuning Tuning { get; private set; }
+
+        /// <summary>Per-animal mutable movement state, advanced in place by the strategy each tick (T07).</summary>
+        public ref MovementState MovementState => ref _movementState;
+
+        /// <summary>The catalog index of the pool this instance belongs to (set by the factory at creation).</summary>
+        internal int PoolIndex { get; set; }
+
+        /// <summary>
+        /// Take-from-pool reset + configure: applies the full Rigidbody physics profile, scale, runtime
+        /// state, and clears the movement state. Idempotent on reuse — a recycled body carries no stale
+        /// velocity, dead-flag, heading, or grace.
+        /// </summary>
+        /// <param name="spec">This animal's species spec (role, strength, size, mass, tuning).</param>
+        /// <param name="seq">The fresh monotonic spawn id.</param>
+        /// <param name="position">The world spawn position.</param>
+        public void OnSpawn(in AnimalSpec spec, long seq, Vector3 position)
+        {
+            Body.useGravity = false;
+            Body.sleepThreshold = 0f;
+            Body.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            Body.constraints = RigidbodyConstraints.FreezePositionY
+                | RigidbodyConstraints.FreezeRotationX
+                | RigidbodyConstraints.FreezeRotationZ;
+            Body.linearDamping = spec.Tuning.LinearDamping;
+            Body.mass = spec.Mass;
+            Body.linearVelocity = Vector3.zero;
+            Body.angularVelocity = Vector3.zero;
+
+            transform.localScale = Vector3.one * spec.Size;
+            transform.position = position;
+            transform.rotation = Quaternion.identity;
+
+            Role = spec.Role;
+            Strength = spec.Strength;
+            Movement = spec.Movement;
+            Tuning = spec.Tuning;
+            Seq = seq;
+            IsDead = false;
+
+            // Cleared to a known baseline. NextLeapTime = 0 would leap on frame 1 (GDD §11); the T07
+            // Simulation seeds NextLeapTime = clock.Now + JumpInterval when it first ticks the animal.
+            _movementState = default;
+        }
+
+        /// <summary>Return-to-pool reset: zero the body's velocity so it carries none into dormancy.</summary>
+        public void OnDespawn()
+        {
+            Body.linearVelocity = Vector3.zero;
+            Body.angularVelocity = Vector3.zero;
+        }
+
+        /// <summary>Marks this animal dead (the Simulation calls it on a resolved death, before despawn).</summary>
+        public void MarkDead()
+        {
+            IsDead = true;
+        }
+    }
+}
