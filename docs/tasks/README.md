@@ -35,7 +35,7 @@ count) is alive at the end of M2; M3 is feedback + the deliverable.
 | T06 | `Animal` dumb adapter + physics profile + `AnimalFactory` pool (max ≥ MaxPopulation + PredatorFloor) + reset contract | M2 — adapters | T01 | ✓ | ✅ |
 | T07 | `Simulation` tick owner: MoveContext + grace + bounds + collision enqueue→drain→resolve→events (raises `AnimalDied` via T05's `AnimalDeathSignal`) + prey-prey impulse + Outcome position/normal sourcing (from live bodies) | M2 | T02, T03, T05, T06 | ✓ | ✅ |
 | T08 | Spawner (UniTask `IAsyncStartable`) + `AnimalFactory` DI binding (class ships in T06) + `SpeciesWeight`/`SpawnTuning`/`AnimalSpec` build (1:1 catalog-order index contract + wiring-test over both lists) + production `IOccupancyQuery` (`Physics.CheckSphere`) + `FieldBounds` (camera frustum) + HUD wiring (`HudView` uGUI + Canvas/labels + `UnityEngine.UI` asmdef ref + bind signal/counters/presenter) + `GameLifetimeScope` wiring → **vertical slice runs** | M2 | T04, T05, T07 | ✓ | ✅ |
-| T09 | Feedback (UniTask-lerp Tasty!/pop/death billboard + AnimationCurve jump arc) + scene bootstrap + Rabbit (data-only) + `MaterialPropertyBlock` + Windows build + README/ARCHITECTURE | M3 — ship | T08 | · | ▫ |
+| T09 | Feedback (UniTask-lerp Tasty!/pop/death billboard + AnimationCurve jump arc) + scene bootstrap + Rabbit (data-only) + `MaterialPropertyBlock` + Windows build + README/ARCHITECTURE | M3 — ship | T08 | ✓ | ▫ |
 
 Pre-task setup (not a task; done/in-flight): Unity 6.3 URP baseline, VContainer, `.editorconfig`,
 MCP, the docs. **Before M1 code:** **UniTask** is in `manifest.json` (OpenUPM; DOTween dropped) —

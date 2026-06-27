@@ -1,18 +1,20 @@
 # Current Status
 Last updated: 2026-06-27
-Updated by: AI session (T08 — spawner + DI wiring + production seams + uGUI HUD + scene)
-Branch/context: T01–T07 merged. **T08 implemented & verified in the working tree — pending human commit**
-(intended on branch `feat/t08-spawner-di-wiring-and-vertical-slice`; two planned commits — the T08 brief
-`docs:` then the implementation `feat:`).
+Updated by: AI session (T09 brief authored + decisions resolved)
+Branch/context: **T01–T08 merged** (T08 = PR #8, `5fa20c0`; working tree clean). **T09 brief authored & decisions resolved**
+— pending human validation of the brief → a `docs: T09 brief` commit, then T09 implementation.
 
 ## Current Objective
-Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 complete (T01–T05).** **M2 complete:
-T06 + T07 merged; T08 (spawner + DI + production seams + scene) done & pending commit → the vertical slice
-runs.** Next: **T09** (M3 ship — feedback visuals Tasty!/pop/death + `AnimationCurve` jump arc; Rabbit
-data-only; `MaterialPropertyBlock` colour; Windows build; README/ARCHITECTURE).
+Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 complete (T01–T05); M2 complete
+(T06–T08 merged) → the vertical slice runs.** Now at **M3 — ship (T09):** the full brief
+[`T09-feedback-rabbit-build-and-docs.md`](../tasks/T09-feedback-rabbit-build-and-docs.md) is written and its
+decisions resolved (feedback visuals Tasty!/pop/death + `AnimationCurve` jump arc; prey/predator
+`MaterialPropertyBlock` colour; Rabbit data-only; Windows build; README/ARCHITECTURE) — pending human
+validation → commit → implementation.
 
 ## Status
-**T08 DONE — pending commit.** Per the validated, adversarially-reviewed brief
+**T08 DONE — merged (PR #8, `5fa20c0`); working tree clean.** **T09 brief authored** — its seven flagged
+decisions resolved (see the brief's *Decisions* section). What T08 shipped, per its brief
 (`docs/tasks/T08-spawner-di-wiring-and-vertical-slice.md`):
 - **`ZooWorld.Composition`:** `CatalogProjection` (pure SO→struct projection); **`GameLifetimeScope`** (the one
   composition root — every service bound via the §G factory-lambda recipe, a source-verified VContainer
@@ -50,9 +52,9 @@ data-only; `MaterialPropertyBlock` colour; Windows build; README/ARCHITECTURE).
   and `dotnet format --verify-no-changes` is clean on both the runtime and test projects.
 
 ## Next Actions
-1. **Human (git only):** on `feat/t08-spawner-di-wiring-and-vertical-slice`, two commits —
-   `docs: T08 brief — Spawner + DI wiring + vertical slice` (the brief), then
-   `feat: T08 spawner + DI wiring + production seams + uGUI HUD → vertical slice` (the implementation + tests +
-   scene + the doc close-out: the brief's *What was actually done*, the matrix row, and this file).
-2. Start **T09** (feedback visuals + Rabbit data-only + `MaterialPropertyBlock` colour + Windows build +
-   README/ARCHITECTURE) — the M3 ship milestone.
+1. **Human:** validate the T09 brief; on approval, commit it —
+   `docs: T09 brief — feedback + Rabbit + MaterialPropertyBlock + Windows build + ARCHITECTURE`.
+2. **Then implement T09** per the brief (feedback visuals + prey/predator colour + Rabbit data-only +
+   Windows build + README/ARCHITECTURE) — the M3 ship milestone. The close-out doc updates (matrix
+   Status `▫`→`✅`, the §9 feedback rows, this file) ride with the `feat:` commit.
+*(T08 is already merged — PR #8, `5fa20c0`; no T08 commit pending.)*
