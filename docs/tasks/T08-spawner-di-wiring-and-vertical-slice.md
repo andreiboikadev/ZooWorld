@@ -5,7 +5,7 @@
 | Milestone | M2 — adapters / integration |
 | Depends on | T04 (SpawnPlanner), T05 (DeathCounters/HudPresenter/IHudView), T07 (Simulation) — also consumes T02 movement SOs + T06 `Animal` prefab/factory |
 | Touches scene/prefabs | **yes** — `Assets/_Project/Scenes/Gameplay.unity` (composition root, camera, HUD canvas, floor, animals root); verifies `Assets/_Project/Prefabs/Animal.prefab`; ProjectSettings physics matrix |
-| Status | ▫ not started |
+| Status | ✅ done — pending commit |
 
 ## Goal
 
@@ -274,4 +274,40 @@ build; README/ARCHITECTURE. No new gameplay rules — T08 is wiring + adapters o
 
 ## What was actually done
 
-— *(filled on close: what shipped, deviations, the commit, the date.)*
+**Implemented 2026-06-27** — the composition root + spawner + production seams + uGUI HUD + scene, per the
+validated (adversarially-reviewed) brief. **The vertical slice runs.**
+
+- **`ZooWorld.Composition`:** `CatalogProjection` (pure SO→struct: `Build` + `BuildSpawnTuning` +
+  `BuildSimulationTuning`); **`GameLifetimeScope`** (the one composition root — all services bound via the §G
+  factory-lambda recipe: `in`-struct/array/primitive ctor args captured as locals; the `RegisterEntryPoint`
+  factory overload + `.AsSelf()` for `Simulation`; `AnimalDeathSignal` dual-exposed in one registration).
+- **New:** `Core/FieldBoundsFactory` (pure camera-frustum closed form), `Spawning/PhysicsOccupancyQuery`
+  (`Physics.CheckSphere` on the Animal mask), `Spawning/Spawner` (UniTask `IAsyncStartable` cadence loop),
+  `UI/HudView` (uGUI `Text`).
+- **Additive edits:** `Simulation.Population` (`PopulationSnapshot` over the active list), `SimConfig.
+  _fieldInnerMargin` = **1.5 m** (= `JumpDistance`, honouring T07 decision-3's invariant), `ZooWorld.Runtime.
+  asmdef` +`UnityEngine.UI`.
+- **Scene (`Gameplay.unity`):** `GameLifetimeScope` GO (all 7 refs wired via `SerializedObject` — catalog/
+  config/prefab/camera/HudView/animals-root/Animal-mask + groundY 0 + seed 12345); the Main Camera
+  re-authored **straight down −Y** at (0, 10.4, 0) (camDot 1.000, footprint ≈ 20×12 m); a uGUI HUD Canvas
+  (ScreenSpaceOverlay, LegacyRuntime font, two top-right `Text` + `HudView`); an `Animals` root; a thin
+  static `Floor` BoxCollider on a new **Floor** layer (slot 9). Collision matrix tightened to
+  **Animal×Animal + Animal×Floor**.
+- **Tests (`ZooWorld.Tests.EditMode`, +10):** `CatalogProjectionTests` (4 — the 1:1 index contract via a
+  reflection-built hermetic catalog + the real-asset round-trip + the two tuning copies); `FieldBoundsFactoryTests`
+  (4 — the frustum closed form + the GDD §9 ≈20×12 framing); `SimulationTests` (+2 — the population snapshot).
+
+**Deviations from the brief:** none material. The one scene element not spelled out in §H: **no `EventSystem`**
+— the HUD is display-only, and the project's Input System package makes the legacy `StandaloneInputModule`
+throw (`UnityEngine.Input` is disabled), so an unused EventSystem was removed to keep the Console clean.
+
+**Verification (this session, via MCP):** **EditMode 122/122 green** (112 prior + 10 new; re-run in the final
+state, 3.1 s); **0 Console errors** across compile + the Play smoke. **Play smoke** (`Gameplay.unity`): animals
+spawn on the 1–2 s cadence (active 4, ≥ 1 predator held by the floor), move (snake linear ~2.3 m/s, 3/4 in
+motion), all within the field (maxX 4.76, maxZ 4.47 ≪ bounds); **live predation via the real
+`OnCollisionEnter`→drain→`AnimalDied` path → HUD shows "Dead prey: 1" / "Dead predators: 1"** (the full
+counters→presenter→view chain, incl. a predator duel); camera straight down (Dot 1.000); Console clean. The
+live-collision smoke T07 deferred to T08 is now confirmed.
+
+**Commit proposed:** `feat: T08 spawner + DI wiring + production seams + uGUI HUD → vertical slice` —
+_pending human commit_.

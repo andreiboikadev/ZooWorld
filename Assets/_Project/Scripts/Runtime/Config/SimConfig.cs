@@ -48,6 +48,9 @@ namespace ZooWorld.Config
         [Tooltip("Upper bound of the wander heading re-roll interval, seconds.")]
         [Min(0f)]
         [SerializeField] private float _wanderRerollMax = 1.5f;
+        [Tooltip("Bounds-return inner margin (m). T07 invariant: >= JumpDistance, so a jumper leaping from the inner edge can't clear the true edge.")]
+        [Min(0f)]
+        [SerializeField] private float _fieldInnerMargin = 1.5f;
 
         [Header("Feedback")]
         [Tooltip("\"Tasty!\" label lifetime, seconds.")]
@@ -89,6 +92,9 @@ namespace ZooWorld.Config
 
         /// <summary>Upper bound of the wander heading re-roll interval (s).</summary>
         public float WanderRerollMax => _wanderRerollMax;
+
+        /// <summary>Bounds-return inner hysteresis margin (m); T07 invariant: ≥ JumpDistance.</summary>
+        public float FieldInnerMargin => _fieldInnerMargin;
 
         /// <summary>"Tasty!" label lifetime (s).</summary>
         public float TastyLifetime => _tastyLifetime;

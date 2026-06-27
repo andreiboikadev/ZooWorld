@@ -1,58 +1,58 @@
 # Current Status
 Last updated: 2026-06-27
-Updated by: AI session (T07 — Simulation tick owner + collision pipeline)
-Branch/context: T01–T06 merged (T06 = `c238d8f`/#6). **T07 implemented & verified in the working tree —
-pending human commit.**
+Updated by: AI session (T08 — spawner + DI wiring + production seams + uGUI HUD + scene)
+Branch/context: T01–T07 merged. **T08 implemented & verified in the working tree — pending human commit**
+(intended on branch `feat/t08-spawner-di-wiring-and-vertical-slice`; two planned commits — the T08 brief
+`docs:` then the implementation `feat:`).
 
 ## Current Objective
-Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 complete (T01–T05).** **M2 (adapters):
-T06 (Animal + factory) merged; T07 (Simulation tick + collision pipeline) done & pending commit.** Next:
-**T08** (Spawner + DI wiring + `FieldBounds` + HUD view → the vertical slice runs on its own).
+Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 complete (T01–T05).** **M2 complete:
+T06 + T07 merged; T08 (spawner + DI + production seams + scene) done & pending commit → the vertical slice
+runs.** Next: **T09** (M3 ship — feedback visuals Tasty!/pop/death + `AnimationCurve` jump arc; Rabbit
+data-only; `MaterialPropertyBlock` colour; Windows build; README/ARCHITECTURE).
 
 ## Status
-**T07 (`Simulation` tick owner + end-of-step collision pipeline) DONE — pending commit.** Per the validated
-brief (`docs/tasks/T07-simulation-tick-and-collision-pipeline.md`):
-- **`ZooWorld.Core`:** `IContactSink`, `SimulationTuning`, **`Simulation`** (plain `IFixedTickable` +
-  `IContactSink` + `IDisposable`: `Register`-seed, `FixedTick` = tick→drain, two-pass deaths-then-bounces
-  drain, raises `AnimalDied`, prey×prey impulse + grace).
-- **`ZooWorld.Animals`:** `SpawnSeed`, `DriveMode`/`DriveCommand`/`MovementDrive` (pure velocity decision);
-  the bounds heading-writeback + idle-OOB recovery-leap live in the tick.
-- **Merged edits (additive):** `Animal` (`OnCollisionEnter`→enqueue, `SetContactSink`, `Pooled`, sink-clear),
-  `AnimalFactory` (double-despawn guard), `MovementBehaviour`/`JumpMove` (`IsImpulseDriven`).
-- **23 new EditMode tests** (`MovementDriveTests` 7 + `SpawnSeedTests` 4 + `SimulationTests` 12).
+**T08 DONE — pending commit.** Per the validated, adversarially-reviewed brief
+(`docs/tasks/T08-spawner-di-wiring-and-vertical-slice.md`):
+- **`ZooWorld.Composition`:** `CatalogProjection` (pure SO→struct projection); **`GameLifetimeScope`** (the one
+  composition root — every service bound via the §G factory-lambda recipe, a source-verified VContainer
+  wiring: `in`-struct/array/primitive ctor args captured as locals; `RegisterEntryPoint` factory overload +
+  `.AsSelf()` for `Simulation`; `AnimalDeathSignal` dual-exposed).
+- **New seams/loop:** `FieldBoundsFactory` (pure camera frustum), `PhysicsOccupancyQuery` (`Physics.CheckSphere`),
+  `Spawner` (UniTask `IAsyncStartable`), `HudView` (uGUI).
+- **Additive edits:** `Simulation.Population`; `SimConfig._fieldInnerMargin` = 1.5 m (= `JumpDistance`, T07
+  invariant); `ZooWorld.Runtime.asmdef` +`UnityEngine.UI`.
+- **Scene `Gameplay.unity`:** composition root + all refs; straight-down camera (≈ 20×12 m); uGUI HUD Canvas
+  (two top-right counters); `Animals` root; thin static `Floor` on a new **Floor** layer; collision matrix =
+  **Animal×Animal + Animal×Floor**.
+- **+10 EditMode tests** (CatalogProjection 4 + FieldBoundsFactory 4 + Population 2).
 
 ## Checks Run (this session, via MCP)
-- **EditMode 112/112 green** (89 prior + 23; re-verified this session; 3.06 s); **0 Console errors** (only the unrelated MCP-bridge
-  WebSocket warning).
-- `dotnet format --verify-no-changes` exit 0 on all new/edited files; forbidden-API / Unity-statics grep clean
-  (the only `GetComponent` is the lazy `Body` getter + the `OnCollisionEnter` contact event — never the tick).
-- **Play smoke** (manual `Physics.Simulate` stepping): snake linear ~2.3 m/s + **clean bounds-turn**
-  (heading-writeback, maxX 8.04, no escape, Y=0); frog leap finite + Y=0 + no freeze + gravity off; predator
-  eats prey → despawn + `AnimalDied(Prey)` → `DeathCounters.DeadPrey == 1`; prey×prey kick separates
-  (1.40→3.09 m, isolated from depenetration) + grace opens, both live.
+- **EditMode 122/122 green** (112 prior + 10 new; re-run in the final state, 3.10 s); **0 Console errors**
+  across compile + the Play smoke.
+- **Play smoke** (`Gameplay.unity`): spawn cadence + cap + predator-floor live; animals move (snake ~2.3 m/s)
+  and stay in the field (maxX 4.76, maxZ 4.47 ≪ bounds); **live predation** (`OnCollisionEnter`→drain→
+  `AnimalDied`) → HUD "Dead prey: 1" / "Dead predators: 1" (full counters→presenter→view chain, incl. a
+  predator duel); camera straight down (Dot 1.000). The live-collision smoke T07 deferred to T08 is confirmed.
 
-## Decisions / deviations (T07)
-- **Velocity model = the `IsImpulseDriven` flag** (the brief's recommended option, not the zero-edit alt).
-- **2 mechanical deviations:** dropped the call-site `in` on `animal.Tuning` (CS8156 — `Tuning` is a property
-  rvalue; passed as `in` via a temp); added a **`VContainer` reference to the test asmdef** (CS0012 — the
-  `SimulationTests` cast the `IFixedTickable` `Simulation`; the brief's *"no asmdef change"* was inaccurate).
+## Decisions / deviations (T08)
+- **InnerMargin = 1.5 m (= `JumpDistance`)** — honours T07 decision-3's `InnerMargin ≥ JumpDistance` invariant
+  (an earlier brief draft's 1.0 m would have let a jumper leak off-screen); shipped as `SimConfig._fieldInnerMargin`.
+- **No `EventSystem`** on the HUD Canvas — display-only, and the project's Input System package makes the legacy
+  `StandaloneInputModule` throw; the unused EventSystem was removed (keeps the Console clean).
+- **VContainer wiring = §G factory lambdas** (not `RegisterInstance`) — required: `in`-struct/array/primitive
+  ctor args can't be reflection-injected (established by the brief's adversarial review, re-confirmed: the
+  container builds and the slice runs).
 
-## Blockers / open (carry-forward → tuning / T08)
-- **JumpMath leap distance (T02):** the live leap ≈ **1.37 m** vs the nominal **1.5 m** (~8% under — Unity
-  integrates drag as `v·(1−damping·dt)` damp-then-move; the `distance×damping` form runs ~8% short). **Within
-  the provisional GDD §7 tolerance — no fix needed**; an optional ~+9% `JumpMath` tweak is best decided at the
-  T08 tuning pass. *(Re-verification correction: an earlier "1.87 m" reading was a smoke-harness artifact —
-  the test frog was spawned overlapping the still-active prefab source → depenetration push; confirmed via an
-  isolated drag probe + a prefab-deactivated re-measure. Product code is correct — an idle animal does not
-  drift.)*
-- **`OnCollisionEnter` live-callback firing** is not exercisable under `Physics.Simulate` in Edit mode → the
-  drain was driven via manual enqueue (code-verified wiring; enqueue→drain→physics confirmed). The live-collision
-  Play smoke is part of **T08**'s vertical slice.
+## Blockers / open
+- **None — the slice runs.** Docs are consistent: the `game-design.md §9` bounds-inner-margin row
+  (`≥ jump distance ≈ 1.5 m`) now mirrors `SimConfig._fieldInnerMargin` (re-serialized into `SimConfig.asset`),
+  and `dotnet format --verify-no-changes` is clean on both the runtime and test projects.
 
 ## Next Actions
-1. **Human (git only):** commit the working tree as
-   `feat: T07 Simulation tick owner + end-of-step collision pipeline` (3 `.Core` + 4 `.Animals` new files + 4
-   merged-type edits + the test asmdef + 3 test files + `.meta` + doc-close: the brief What-was-done, the matrix
-   row, and this file).
-2. Start **T08** (Spawner `IAsyncStartable` + DI wiring + production `IOccupancyQuery` / `FieldBounds`-from-camera
-   + HUD `HudView` → the vertical slice runs).
+1. **Human (git only):** on `feat/t08-spawner-di-wiring-and-vertical-slice`, two commits —
+   `docs: T08 brief — Spawner + DI wiring + vertical slice` (the brief), then
+   `feat: T08 spawner + DI wiring + production seams + uGUI HUD → vertical slice` (the implementation + tests +
+   scene + the doc close-out: the brief's *What was actually done*, the matrix row, and this file).
+2. Start **T09** (feedback visuals + Rabbit data-only + `MaterialPropertyBlock` colour + Windows build +
+   README/ARCHITECTURE) — the M3 ship milestone.

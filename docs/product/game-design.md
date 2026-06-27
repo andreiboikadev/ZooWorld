@@ -171,6 +171,7 @@ per unordered pair, early-outing if either is already `dead`. Mechanism: guardra
 | Prey×prey separation kick | ~4 m/s | prov. |
 | Linear damping (all animals) | 4 — jump burst derived (≈ distance×damping) | prov. |
 | Field bounds (≈ camera footprint) | ~20×12 m | prov. |
+| Field bounds inner margin (bounds-return) | ≥ jump distance (≈ 1.5 m) | prov. |
 | Max population (safeguard) | ~120 | prov. |
 | Spawn clearance / max attempts | ~1 m / 10 | prov. |
 | Animal pool prewarm / max | derived per definition: round(spawnWeight × maxPopulation) / max ≥ maxPopulation | prov. |
