@@ -75,6 +75,7 @@ namespace ZooWorld.Animals
                 return null;
             }
 
+            animal.Pooled = false;
             animal.gameObject.SetActive(true);
             animal.OnSpawn(_specs[index], _sequence.Next(), position);
             return animal;
@@ -83,9 +84,15 @@ namespace ZooWorld.Animals
         /// <summary>Returns <paramref name="animal"/> to its species pool (reset + deactivated, never destroyed).</summary>
         public void Despawn(Animal animal)
         {
+            if (animal.Pooled)
+            {
+                return;
+            }
+
             animal.OnDespawn();
             animal.gameObject.SetActive(false);
             _pools[animal.PoolIndex].Push(animal);
+            animal.Pooled = true;
         }
 
         /// <summary>
@@ -126,6 +133,7 @@ namespace ZooWorld.Animals
             animal.PoolIndex = index;
             animal.OnDespawn();
             animal.gameObject.SetActive(false);
+            animal.Pooled = true;
             _allInstances.Add(animal);
             _countPerIndex[index]++;
             return animal;

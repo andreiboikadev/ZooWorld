@@ -3,6 +3,7 @@
     "rootNamespace": "ZooWorld.Tests.EditMode",
     "references": [
         "ZooWorld.Runtime",
+        "VContainer",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

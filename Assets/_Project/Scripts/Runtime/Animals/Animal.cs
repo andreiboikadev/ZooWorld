@@ -16,6 +16,7 @@ namespace ZooWorld.Animals
     {
         private Rigidbody _rigidbody = null!;
         private MovementState _movementState;
+        private IContactSink? _contacts;
 
         /// <summary>
         /// The body, resolved lazily on first access (cached thereafter) — NOT only in <c>Awake</c>, which
@@ -47,6 +48,9 @@ namespace ZooWorld.Animals
 
         /// <summary>The catalog index of the pool this instance belongs to (set by the factory at creation).</summary>
         internal int PoolIndex { get; set; }
+
+        /// <summary>True while idle in the pool — the factory's double-despawn guard (set on create/return, cleared on take).</summary>
+        internal bool Pooled { get; set; }
 
         /// <summary>
         /// Take-from-pool reset + configure: applies the full Rigidbody physics profile, scale, runtime
@@ -90,12 +94,36 @@ namespace ZooWorld.Animals
         {
             Body.linearVelocity = Vector3.zero;
             Body.angularVelocity = Vector3.zero;
+            _contacts = null;
         }
 
         /// <summary>Marks this animal dead (the Simulation calls it on a resolved death, before despawn).</summary>
         public void MarkDead()
         {
             IsDead = true;
+        }
+
+        /// <summary>Wires the collision sink (the Simulation) at registration; cleared to null on despawn.</summary>
+        public void SetContactSink(IContactSink? sink)
+        {
+            _contacts = sink;
+        }
+
+        // The dumb adapter's ONLY collision role: enqueue the contact pair into the Simulation's buffer for
+        // the end-of-step drain (guardrails §2/§6) — it resolves nothing here. GetComponent fires on a
+        // contact event, never in the per-frame tick (§12).
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (_contacts == null || collision.rigidbody == null)
+            {
+                return;
+            }
+
+            Animal? other = collision.rigidbody.GetComponent<Animal>();
+            if (other != null)
+            {
+                _contacts.Enqueue(this, other);
+            }
         }
     }
 }

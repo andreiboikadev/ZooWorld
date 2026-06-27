@@ -17,6 +17,9 @@ namespace ZooWorld.Animals
     public sealed class JumpMove : MovementBehaviour
     {
         /// <inheritdoc/>
+        public override bool IsImpulseDriven => true;
+
+        /// <inheritdoc/>
         public override Vector3 Tick(ref MovementState state, in MoveContext ctx, in MovementTuning tuning)
         {
             if (ctx.Clock.Now < state.GraceUntil)

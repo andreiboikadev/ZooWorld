@@ -5,7 +5,7 @@
 | Milestone | M2 — adapters |
 | Depends on | T02, T03, T05, T06 |
 | Touches scene/prefabs | **no** — runtime code + EditMode tests only. Edits 4 merged runtime types (`Animal`, `AnimalFactory`, `MovementBehaviour`, `JumpMove` — all **additive**). The Play smoke spawns transient objects into `Gameplay.unity` but commits **no** scene/prefab/asset change (floor collider + scene placement + DI wiring are T08). |
-| Status | ▫ not started |
+| Status | ✅ done — pending commit |
 
 ## Goal
 
@@ -298,7 +298,11 @@ wander-reroll) per animal, and a `JumpMove` leap consumes **1** more — queue e
 - **`FixedTick_OutOfBoundsIdleJumper_ForcesRecoveryLeap`** (decision 3 — the off-screen-drift guard): a frog
   (`JumpMove`) registered (so `NextLeapTime = clock.Now + 1.5`, i.e. idle this tick, not in grace) with
   `transform.position` past the inner margin; `FixedTick()` → `frog.MovementState.NextLeapTime == clock.Now`
-  (the recovery-leap nudge fired, so the next tick leaps inward instead of the frog coasting off-screen).
+  (the recovery-leap nudge fired, so the next tick leaps — redirected *toward centre* by `MovementDrive`'s OOB
+  branch, which overrides `JumpMove`'s fresh random heading with `steerToCenter × BurstSpeed`, not random).
+- **`FixedTick_InBoundsIdleJumper_DoesNotNudge`** (the nudge's negative control): an **in-bounds** idle frog;
+  `FixedTick()` → `NextLeapTime == clock.Now + 1.5f` (unchanged) — the recovery nudge is gated on
+  out-of-bounds and must NOT fire in-bounds.
 - **`Drain_PredatorEatsPrey_RaisesDeath_Despawns`:** predator (`Strength 5`) + prey at a known **non-origin**
   `posA` (e.g. `(3,0,4)`, so the **non-zero** assert is meaningful); `Enqueue(predator, prey)`; `FixedTick()`
   → `prey.IsDead == true`, captured `AnimalDied.Role == Prey`,
@@ -308,15 +312,21 @@ wander-reroll) per animal, and a `JumpMove` leap consumes **1** more — queue e
   `IsDead == false`, both `MovementState.GraceUntil == clock.Now + 0.6f`, **zero** death events. (The kick's
   velocity is Play-smoke; the grace state is asserted here.)
 - **`Drain_DuplicateContacts_ResolveOnce`:** `Enqueue(predator, prey)`, `Enqueue(prey, predator)`,
-  `Enqueue(predator, prey)`; `FixedTick()` → exactly **one** `AnimalDied` (unordered dedup + dead-guard).
-- **`Drain_EatsBeforeBounces_DeadPreyDoesNotBounce`:** predator `P`, `preyA`, `preyB`; `Enqueue(P, preyA)`
-  **and** `Enqueue(preyA, preyB)`; `FixedTick()` → `preyA.IsDead`, one `AnimalDied(Prey)`, `preyB.IsDead ==
-  false`, `preyB.MovementState.GraceUntil == 0f` (its partner died in pass A, so the pass-B bounce
-  dead-guards to `None` — no kick into a corpse; guardrails §6.1 ordering + 3-body correctness).
+  `Enqueue(predator, prey)`; `FixedTick()` → exactly **one** `AnimalDied` — the **behavioural** contract
+  (duplicate/reversed contacts cause no double-death). *(Both the unordered dedup AND the dead-guard guarantee
+  this outcome, so the test asserts the observable contract, not dedup in isolation; the dedup's distinct
+  effect — a double prey×prey kick — is a Play-mode concern, since headless `AddForce` is a no-op. The dedup
+  mechanism is logic-reviewed.)*
+- **`Drain_EatsBeforeBounces_DeadPreyDoesNotBounce`:** predator `P`, `preyA`, `preyB`; enqueue the **bounce
+  pair first** — `Enqueue(preyA, preyB)` **then** `Enqueue(P, preyA)`; `FixedTick()` → `preyA.IsDead`, one
+  `AnimalDied(Prey)`, `preyB.IsDead == false`, `preyB.MovementState.GraceUntil == 0f`. *(The bounce-first order
+  is deliberate and load-bearing: a one-pass drain iterating in enqueue order would open preyB's grace on
+  `(preyA, preyB)` BEFORE preyA is eaten, so this order genuinely discriminates the two-pass
+  deaths-before-bounces ordering; guardrails §6.1 + 3-body correctness.)*
 - **`Drain_PredatorDuel_HigherStrengthSurvives`:** predators `Strength 5` vs `Strength 3`; `Enqueue`;
   `FixedTick()` → the `Strength 3` body `IsDead`, `AnimalDied.Role == Predator`, the `Strength 5` body alive,
-  and **exactly one** `AnimalDied` raised (locks the two-pass invariant — pass B must re-resolve the duel pair
-  to `None` via the dead-guard, not re-kill it; the resolver is not internally idempotent across calls).
+  and **exactly one** `AnimalDied` (the duel-winner logic + that pass B re-resolves the same pair to `None`
+  after the death — no double-kill; the two-pass *ordering* itself is proved by `Drain_EatsBeforeBounces`).
 - **`Despawn_Twice_NoDoublePush`** (the T06 guard, may live in `AnimalFactoryTests` instead): `a = Spawn(0,…);
   Despawn(a); int free = FreeCount(0); Despawn(a);` → `FreeCount(0) == free` (idempotent).
 
@@ -398,4 +408,64 @@ fly-apart separation, and no-freeze-over-time are the Play smoke.)
 
 ## What was actually done
 
-`—` (filled on close: what shipped, the chosen velocity-application option, deviations, the commit, the date.)
+**Implemented 2026-06-27** — the `Simulation` tick owner + the end-of-step collision pipeline, per the
+validated brief.
+
+- **`ZooWorld.Core`:** `IContactSink` (the Animal→Simulation enqueue seam); `SimulationTuning` (readonly
+  struct — BounceKick/GraceSeconds); **`Simulation`** — a plain `sealed class : IFixedTickable, IContactSink,
+  IDisposable` (ctor-injected; `Register` seeds + wires the sink + warms `Body` + adds to the active list;
+  `FixedTick` ticks movement → applies the `MovementDrive` command → drains; the two-pass drain (deaths then
+  bounces, per-resolve `dead`-guard, unordered dedup) raises `AnimalDied` and applies the prey×prey impulse +
+  grace; `Dispose` clears sinks + buffers).
+- **`ZooWorld.Animals`:** `SpawnSeed` (heading + leap/reroll seeding); `DriveMode`/`DriveCommand`/
+  `MovementDrive` (the pure grace×bounds×coast×impulse velocity decision). The bounds-return
+  **heading-writeback** + the idle-OOB-jumper **recovery-leap nudge** live in the `Simulation` tick.
+- **Edits to merged types (additive):** `Animal` (+`OnCollisionEnter`→enqueue, `SetContactSink`, `Pooled`,
+  `_contacts = null` on despawn); `AnimalFactory` (double-despawn guard via `Pooled`); `MovementBehaviour`
+  (+`virtual IsImpulseDriven => false`); `JumpMove` (+`override => true`).
+- **Velocity model:** the **`IsImpulseDriven` flag** (the brief's recommended option) — not the zero-edit alt.
+- **Tests** (`ZooWorld.Tests.EditMode`): `MovementDriveTests` (7), `SpawnSeedTests` (4), `SimulationTests`
+  (12: register-seed, linear-drive, bounds heading-writeback, jumper leap-advance, idle-OOB recovery-leap,
+  in-bounds-no-nudge, predator-eats, prey×prey grace, dedup, eats-before-bounces (bounce-first → discriminates
+  two-pass), predator-duel, double-despawn). **23 new.**
+
+**Deviations from the brief (2, both mechanical — intent unchanged):**
+1. **Call-site `in` dropped on `animal.Tuning`** (`SpawnSeed.Apply` / `Movement.Tick` calls): the explicit
+   `in` keyword requires an lvalue, but `Tuning` is a property (rvalue) → **CS8156**. Dropping the keyword
+   passes it as `in` via a compiler temp (identical semantics); the existing strategy tests pass `in` from
+   *locals*, which is why it first surfaced here.
+2. **Test asmdef gained a `VContainer` reference** — the brief's *"no asmdef change"* was inaccurate. The
+   `SimulationTests` cast `(IContactSink)sim` forces the compiler to resolve `Simulation`'s interfaces, one of
+   which (`IFixedTickable`) is in VContainer → **CS0012**. `autoReferenced` adds VContainer only to the
+   predefined assemblies, not to the explicit (`overrideReferences`) test asmdef. Production API unchanged.
+
+**Verification (this session, via MCP):** **EditMode 112/112 green** (89 prior + 23 new; re-verified this
+session after the test-rigor hardening; 3.06 s); **0 Console
+errors** (only the unrelated MCP-bridge WebSocket warning); `dotnet format --verify-no-changes` exit 0 on all
+new/edited files; forbidden-API / Unity-statics grep clean (the only `GetComponent` is the lazy `Body` getter
++ the `OnCollisionEnter` contact event — never the tick). **Play smoke** (manual `Physics.Simulate` stepping):
+the **snake** travels linearly ~2.3 m/s and **turns cleanly at the inner margin** (maxX 8.04, never the 10
+edge; heading flips inward — no jitter), Y stays 0; the **frog** leap is finite, Y stays 0, never sleeps,
+gravity off; **predator eats prey** → prey despawns + `AnimalDied(Prey)` → `DeathCounters.DeadPrey == 1`,
+predator survives; **prey×prey** kick physically separates (1.40→3.09 m, placed non-overlapping → isolated
+from PhysX depenetration) + grace opens, both live, no count.
+
+**Smoke findings:**
+- **Live leap ≈ 1.37 m vs the JumpMath nominal 1.5 m** (~8% undershoot). Root cause confirmed by an isolated
+  single-Rigidbody drag probe: Unity integrates linear damping as `v ← v·(1 − damping·dt)` **damp-then-move**
+  (per-step factor 0.92 = `1 − 4·0.02`), so the `distance × damping` closed form (which assumes the
+  `1/(1+damping·dt)` model) lands ~8% short — coast 1.378 m for `v0 = 6`. **Within the provisional GDD §7
+  feel — no fix needed** (the leap contract holds: finite / on-plane / no-freeze). An optional ~+9% `JumpMath`
+  tweak could centre it on 1.5 m; better decided at the T08 tuning pass with the full field visible.
+  *(Re-verification correction: an earlier reading of "1.87 m / 24% overshoot" was a **smoke-harness
+  artifact** — the test frog was spawned on top of the still-active prefab source body, so PhysX
+  depenetration shoved it ~0.5 m before the leap, inflating the origin-relative measurement. With the prefab
+  source deactivated the idle frog stays at 0.000 and the clean single leap is 1.37 m. **Product code is
+  correct — an idle animal does not drift**; the prior reading was the measurement's fault, not the code's.)*
+- **`OnCollisionEnter` does not dispatch under `Physics.Simulate` in Edit mode** (the solver runs, MonoBehaviour
+  collision callbacks don't), so the drain was driven via manual `Enqueue` (exactly what `OnCollisionEnter`
+  does). The `OnCollisionEnter`→enqueue wiring is code-verified and the enqueue→drain→physics path is now
+  confirmed live; the **live-callback Play smoke belongs to the T08 vertical slice** (the brief already scopes
+  the full Play smoke there).
+
+**Commit proposed:** `feat: T07 Simulation tick owner + end-of-step collision pipeline` — _pending human commit_.
