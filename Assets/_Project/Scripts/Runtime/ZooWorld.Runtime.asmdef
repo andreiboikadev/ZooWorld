@@ -3,7 +3,8 @@
     "rootNamespace": "ZooWorld",
     "references": [
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

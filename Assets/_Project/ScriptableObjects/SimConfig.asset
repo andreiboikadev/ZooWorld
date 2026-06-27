@@ -23,5 +23,6 @@ MonoBehaviour:
   _linearDamping: 4
   _wanderRerollMin: 0.8
   _wanderRerollMax: 1.5
+  _fieldInnerMargin: 1.5
   _tastyLifetime: 1
   _tastyPoolSize: 16

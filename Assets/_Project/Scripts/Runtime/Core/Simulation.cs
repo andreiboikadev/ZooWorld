@@ -45,6 +45,28 @@ namespace ZooWorld.Core
         }
 
         /// <summary>
+        /// A point-in-time population summary the spawner reads for the cap + predator floor — computed from
+        /// the active list this <see cref="Simulation"/> owns (the single source of truth). O(n) over the
+        /// active animals, read once per spawn interval (guardrails §15).
+        /// </summary>
+        public PopulationSnapshot Population
+        {
+            get
+            {
+                int predators = 0;
+                for (int i = 0; i < _active.Count; i++)
+                {
+                    if (_active[i].Role == Role.Predator)
+                    {
+                        predators++;
+                    }
+                }
+
+                return new PopulationSnapshot(_active.Count, predators);
+            }
+        }
+
+        /// <summary>
         /// Registers a freshly spawned animal: seeds its movement state (heading + leap/reroll clocks), wires
         /// its collision sink, warms the cached body, and adds it to the active list. Called by the spawner
         /// on each take (T08); the tests call it directly.

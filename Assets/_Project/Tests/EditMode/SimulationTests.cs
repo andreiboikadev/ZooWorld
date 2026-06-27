@@ -253,6 +253,37 @@ namespace ZooWorld.Tests.EditMode
             Assert.That(factory.FreeCount(0), Is.EqualTo(free));
         }
 
+        [Test]
+        public void Population_CountsActiveByRole()
+        {
+            AnimalFactory factory = MakeFactory(PredatorSpec(5, Strategy<LinearMove>()), PreySpec(Strategy<JumpMove>()));
+            Simulation sim = MakeSim(factory);
+            SpawnRegister(factory, sim, 0, new Vector3(1f, 0f, 0f));
+            SpawnRegister(factory, sim, 0, new Vector3(2f, 0f, 0f));
+            SpawnRegister(factory, sim, 1, new Vector3(3f, 0f, 0f));
+
+            PopulationSnapshot pop = sim.Population;
+
+            Assert.That(pop.Total, Is.EqualTo(3));
+            Assert.That(pop.PredatorCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Population_AfterPreyDeath_TotalDrops_PredatorCountHolds()
+        {
+            AnimalFactory factory = MakeFactory(PredatorSpec(5, Strategy<LinearMove>()), PreySpec(Strategy<JumpMove>()));
+            Simulation sim = MakeSim(factory);
+            Animal predator = SpawnRegister(factory, sim, 0, new Vector3(1f, 0f, 0f));
+            Animal prey = SpawnRegister(factory, sim, 1, new Vector3(2f, 0f, 0f));
+            Enqueue(sim, predator, prey);
+
+            sim.FixedTick();
+
+            PopulationSnapshot pop = sim.Population;
+            Assert.That(pop.Total, Is.EqualTo(1));
+            Assert.That(pop.PredatorCount, Is.EqualTo(1));
+        }
+
         private static MovementTuning MoveTuning()
         {
             return new MovementTuning(2.5f, 1.5f, 1.5f, 4f, 0.8f, 1.5f);
