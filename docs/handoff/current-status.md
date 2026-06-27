@@ -1,60 +1,61 @@
 # Current Status
 Last updated: 2026-06-27
-Updated by: AI session (T09 brief authored + decisions resolved)
-Branch/context: **T01–T08 merged** (T08 = PR #8, `5fa20c0`; working tree clean). **T09 brief authored & decisions resolved**
-— pending human validation of the brief → a `docs: T09 brief` commit, then T09 implementation.
+Updated by: AI session (T09 — feedback + Rabbit + MaterialPropertyBlock colour + Windows build + ARCHITECTURE)
+Branch/context: **T01–T08 merged.** **T09 implemented & verified in the working tree — pending human commit**
+(on branch `feat/t09-feedback-rabbit-build-and-docs`; the `docs: T09 brief` commit already landed — this is the
+`feat:` implementation commit).
 
 ## Current Objective
-Implement Zoo World per the task plan (`docs/tasks/README.md`). **M1 complete (T01–T05); M2 complete
-(T06–T08 merged) → the vertical slice runs.** Now at **M3 — ship (T09):** the full brief
-[`T09-feedback-rabbit-build-and-docs.md`](../tasks/T09-feedback-rabbit-build-and-docs.md) is written and its
-decisions resolved (feedback visuals Tasty!/pop/death + `AnimationCurve` jump arc; prey/predator
-`MaterialPropertyBlock` colour; Rabbit data-only; Windows build; README/ARCHITECTURE) — pending human
-validation → commit → implementation.
+Ship Zoo World (M3). **M1 (T01–T05) + M2 (T06–T08) merged; T09 — the final M3 task — done & pending commit.**
+The submission is **feature-complete**: spawn → roam → predation → feedback runs, the Rabbit proves the
+data-only extension path, the Windows build is produced, and README/ARCHITECTURE ship. After the human commits
+T09, the only remaining steps are git-side (push + make the repo public + attach the build).
 
 ## Status
-**T08 DONE — merged (PR #8, `5fa20c0`); working tree clean.** **T09 brief authored** — its seven flagged
-decisions resolved (see the brief's *Decisions* section). What T08 shipped, per its brief
-(`docs/tasks/T08-spawner-di-wiring-and-vertical-slice.md`):
-- **`ZooWorld.Composition`:** `CatalogProjection` (pure SO→struct projection); **`GameLifetimeScope`** (the one
-  composition root — every service bound via the §G factory-lambda recipe, a source-verified VContainer
-  wiring: `in`-struct/array/primitive ctor args captured as locals; `RegisterEntryPoint` factory overload +
-  `.AsSelf()` for `Simulation`; `AnimalDeathSignal` dual-exposed).
-- **New seams/loop:** `FieldBoundsFactory` (pure camera frustum), `PhysicsOccupancyQuery` (`Physics.CheckSphere`),
-  `Spawner` (UniTask `IAsyncStartable`), `HudView` (uGUI).
-- **Additive edits:** `Simulation.Population`; `SimConfig._fieldInnerMargin` = 1.5 m (= `JumpDistance`, T07
-  invariant); `ZooWorld.Runtime.asmdef` +`UnityEngine.UI`.
-- **Scene `Gameplay.unity`:** composition root + all refs; straight-down camera (≈ 20×12 m); uGUI HUD Canvas
-  (two top-right counters); `Animals` root; thin static `Floor` on a new **Floor** layer; collision matrix =
-  **Animal×Animal + Animal×Floor**.
-- **+10 EditMode tests** (CatalogProjection 4 + FieldBoundsFactory 4 + Population 2).
+**T09 DONE — pending commit.** Per the validated, adversarially-reviewed brief
+(`docs/tasks/T09-feedback-rabbit-build-and-docs.md`):
+- **Feedback:** prey/predator colour via `MaterialPropertyBlock`; the "Tasty!" label (new `PredatorAte`
+  Observer channel → `UI/TastyLabel` + pooled spawner); the death puff (2nd `AnimalDied` subscriber); the spawn
+  scale-in (`Animal` CTS + `Simulation.Register` lerp kick); the frog/rabbit jump arc (pure `JumpArc` sampled in
+  the tick into a child mesh). All via `Core/FeedbackLerp` (UniTask, cancel-on-despawn).
+- **Rabbit (data-only):** `Rabbit.asset` reuses the Frog's `JumpMove`, appended to `AnimalCatalog.asset` — zero
+  code. Catalog now Frog/Snake/Rabbit (0.45/0.30/0.25).
+- **Prefab/scene:** `Animal.prefab` restructured (mesh → child `Mesh`); new `TastyLabel`/`DeathPuff` prefabs +
+  the `DeathPuff.mat` transparent material; `Gameplay.unity` gained an `Effects` root + 3 scope refs.
+- **Build/docs:** StandaloneWindows64 build (`Builds/Windows/ZooWorld.exe`, git-ignored); `ARCHITECTURE.md`
+  (new) + `README`/`docs/INDEX` updates + the 4 §9 feedback rows.
+- **+11 EditMode tests.**
 
 ## Checks Run (this session, via MCP)
-- **EditMode 122/122 green** (112 prior + 10 new; re-run in the final state, 3.10 s); **0 Console errors**
-  across compile + the Play smoke.
-- **Play smoke** (`Gameplay.unity`): spawn cadence + cap + predator-floor live; animals move (snake ~2.3 m/s)
-  and stay in the field (maxX 4.76, maxZ 4.47 ≪ bounds); **live predation** (`OnCollisionEnter`→drain→
-  `AnimalDied`) → HUD "Dead prey: 1" / "Dead predators: 1" (full counters→presenter→view chain, incl. a
-  predator duel); camera straight down (Dot 1.000). The live-collision smoke T07 deferred to T08 is confirmed.
+- **EditMode 133/133 green** (122 prior + 11 new; 3.4 s); **0 Console errors** across every compile batch —
+  aside from one **pre-existing benign** compile message (the empty `ZooWorld.Editor.asmdef` has no scripts
+  yet → "will not be compiled"; not a T09 change — optionally drop that asmdef for a pristine Console).
+- **Play smoke** (`Gameplay.unity`): animals spawn on cadence (active ~11, predator-floor holds); prey
+  green/sand vs predator red (`MaterialPropertyBlock`, confirmed live + via direct `OnSpawn`); the jump arc
+  lifts the child mesh (≈0.4 of the 0.5 m height); on each eat a **"Tasty!"** label rises+fades at the predator
+  + a **death puff** scales+fades at the victim (both caught live); HUD counters tick ("Dead prey: 36" / "Dead
+  predators: 12"); Rabbit spawns; Console clean.
+- **Windows build:** succeeded (100 MB, 0 errors/warnings); launches + runs; **Player.log clean** (0 exceptions).
+- **Code style:** `dotnet format --verify-no-changes` **clean** on `ZooWorld.Runtime` + `ZooWorld.Tests.EditMode`
+  (one whitespace fix applied — `SimConfig._jumpArcCurve` collapsed to a single line, matching the sibling
+  `_riseEase`); the forbidden-API grep (guardrails §12) is clean (only doc-comment mentions).
 
-## Decisions / deviations (T08)
-- **InnerMargin = 1.5 m (= `JumpDistance`)** — honours T07 decision-3's `InnerMargin ≥ JumpDistance` invariant
-  (an earlier brief draft's 1.0 m would have let a jumper leak off-screen); shipped as `SimConfig._fieldInnerMargin`.
-- **No `EventSystem`** on the HUD Canvas — display-only, and the project's Input System package makes the legacy
-  `StandaloneInputModule` throw; the unused EventSystem was removed (keeps the Console clean).
-- **VContainer wiring = §G factory lambdas** (not `RegisterInstance`) — required: `in`-struct/array/primitive
-  ctor args can't be reflection-injected (established by the brief's adversarial review, re-confirmed: the
-  container builds and the slice runs).
+## Decisions / deviations (T09)
+- **Play-smoke gotcha (not a code bug):** entering Play *immediately* after the heavy asset/script import can
+  leave the VContainer scope's container un-built (`Container == null`) → the async spawn loop stalls (0 spawns,
+  no error). A **fresh Play entry** (after the import settles) builds cleanly and spawns. The standalone build is
+  unaffected. Worth knowing for any future MCP-driven smoke.
+- **`Animal.OnSpawn` collapses the child mesh to `localScale = 0`** (beyond the brief's `localPosition`-only
+  reset) so the spawn scale-in pops cleanly from 0; the pool-reuse safety holds (cancel-on-despawn CTS + fresh
+  collapse on take).
 
 ## Blockers / open
-- **None — the slice runs.** Docs are consistent: the `game-design.md §9` bounds-inner-margin row
-  (`≥ jump distance ≈ 1.5 m`) now mirrors `SimConfig._fieldInnerMargin` (re-serialized into `SimConfig.asset`),
-  and `dotnet format --verify-no-changes` is clean on both the runtime and test projects.
+- **None — feature-complete.** The build run + smoke are clean; the §9 feedback rows are added; the docs are
+  consistent (matrix T09 ✅, the brief's *What was actually done* filled).
 
 ## Next Actions
-1. **Human:** validate the T09 brief; on approval, commit it —
-   `docs: T09 brief — feedback + Rabbit + MaterialPropertyBlock + Windows build + ARCHITECTURE`.
-2. **Then implement T09** per the brief (feedback visuals + prey/predator colour + Rabbit data-only +
-   Windows build + README/ARCHITECTURE) — the M3 ship milestone. The close-out doc updates (matrix
-   Status `▫`→`✅`, the §9 feedback rows, this file) ride with the `feat:` commit.
-*(T08 is already merged — PR #8, `5fa20c0`; no T08 commit pending.)*
+1. **Human (git only):** on `feat/t09-feedback-rabbit-build-and-docs`, commit the implementation —
+   `feat: T09 feedback + Rabbit + MaterialPropertyBlock colour + Windows build + ARCHITECTURE` (code + tests +
+   prefabs/scene/assets + the docs close-out: this file, the matrix row, the brief, §9 rows, README/ARCHITECTURE).
+2. **Submission (git-side):** push, make the repo public (`andreiboikadev/ZooWorld`), attach the `Builds/Windows/`
+   build, send the link. (`Builds/` is git-ignored.)

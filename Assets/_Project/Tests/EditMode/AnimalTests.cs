@@ -19,7 +19,7 @@ namespace ZooWorld.Tests.EditMode
 
         private static AnimalSpec Spec(Role role, int strength = 0, float size = 1f, float mass = 1f, float weight = 1f)
         {
-            return new AnimalSpec(role, strength, size, mass, weight, null,
+            return new AnimalSpec(role, strength, size, mass, Color.white, weight, null,
                 new MovementTuning(2.5f, 1.5f, 1.5f, 4f, 0.8f, 1.5f));
         }
 

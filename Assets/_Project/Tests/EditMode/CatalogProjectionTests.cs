@@ -42,8 +42,8 @@ namespace ZooWorld.Tests.EditMode
             SimConfig config = Track(ScriptableObject.CreateInstance<SimConfig>());
             MovementBehaviour preyMove = Track(ScriptableObject.CreateInstance<JumpMove>());
             MovementBehaviour predMove = Track(ScriptableObject.CreateInstance<LinearMove>());
-            AnimalDefinition frog = Definition(Role.Prey, 0, preyMove, 0.45f, 1f, 1f, 0f, 1.5f, 1.5f);
-            AnimalDefinition snake = Definition(Role.Predator, 5, predMove, 0.30f, 1.2f, 2f, 2.5f, 0f, 0f);
+            AnimalDefinition frog = Definition(Role.Prey, 0, preyMove, 0.45f, 1f, 1f, 0f, 1.5f, 1.5f, Color.green);
+            AnimalDefinition snake = Definition(Role.Predator, 5, predMove, 0.30f, 1.2f, 2f, 2.5f, 0f, 0f, Color.red);
             AnimalCatalog catalog = Catalog(frog, snake);
 
             (AnimalSpec[] specs, SpeciesWeight[] weights) = CatalogProjection.Build(catalog, config);
@@ -60,6 +60,7 @@ namespace ZooWorld.Tests.EditMode
             Assert.That(specs[0].Mass, Is.EqualTo(1f));
             Assert.That(specs[0].SpawnWeight, Is.EqualTo(0.45f));
             Assert.That(specs[0].Movement, Is.SameAs(preyMove));
+            Assert.That(specs[0].Color, Is.EqualTo(Color.green));
             Assert.That(specs[0].Tuning.Speed, Is.EqualTo(0f));
             Assert.That(specs[0].Tuning.JumpDistance, Is.EqualTo(1.5f));
             Assert.That(specs[0].Tuning.JumpInterval, Is.EqualTo(1.5f));
@@ -74,6 +75,7 @@ namespace ZooWorld.Tests.EditMode
             Assert.That(specs[1].Size, Is.EqualTo(1.2f));
             Assert.That(specs[1].Mass, Is.EqualTo(2f));
             Assert.That(specs[1].Movement, Is.SameAs(predMove));
+            Assert.That(specs[1].Color, Is.EqualTo(Color.red));
             Assert.That(specs[1].Tuning.Speed, Is.EqualTo(2.5f));
         }
 
@@ -104,6 +106,20 @@ namespace ZooWorld.Tests.EditMode
         }
 
         [Test]
+        public void BuildFeedbackTuning_CopiesFeedbackConstants()
+        {
+            SimConfig config = Track(ScriptableObject.CreateInstance<SimConfig>());
+
+            FeedbackTuning tuning = CatalogProjection.BuildFeedbackTuning(config);
+
+            Assert.That(tuning.JumpArcHeight, Is.EqualTo(0.5f));
+            Assert.That(tuning.JumpArcDuration, Is.EqualTo(0.45f));
+            Assert.That(tuning.SpawnPopDuration, Is.EqualTo(0.2f));
+            Assert.That(tuning.JumpArc, Is.Not.Null);
+            Assert.That(tuning.PopEase, Is.Not.Null);
+        }
+
+        [Test]
         public void Build_RealCatalogAsset_RoundTripsAndContainsPredator()
         {
             AnimalCatalog catalog = AssetDatabase.LoadAssetAtPath<AnimalCatalog>(
@@ -123,6 +139,7 @@ namespace ZooWorld.Tests.EditMode
             {
                 Assert.That(specs[i].Role, Is.EqualTo(catalog.Definitions[i].Role));
                 Assert.That(weights[i].Weight, Is.EqualTo(catalog.Definitions[i].SpawnWeight));
+                Assert.That(specs[i].Color, Is.EqualTo(catalog.Definitions[i].Color));
                 if (specs[i].Role == Role.Predator)
                 {
                     hasPredator = true;
@@ -132,6 +149,25 @@ namespace ZooWorld.Tests.EditMode
             Assert.That(hasPredator, Is.True, "the catalog needs >= 1 Predator (SpawnPlanner floor precondition)");
         }
 
+        [Test]
+        public void RealCatalog_Rabbit_ReusesFrogMovement_DataOnly()
+        {
+            AnimalCatalog catalog = AssetDatabase.LoadAssetAtPath<AnimalCatalog>(
+                "Assets/_Project/ScriptableObjects/AnimalCatalog.asset");
+            Assert.That(catalog, Is.Not.Null, "AnimalCatalog.asset must exist");
+
+            // The data-only extension proof (GDD §4 / ADR 0002 §1): Rabbit is the 3rd entry and reuses the
+            // SHARED JumpMove SO — no new strategy authored, no code touched.
+            Assert.That(catalog.Definitions.Count, Is.EqualTo(3));
+            Assert.That(catalog.Definitions[0].Id, Is.EqualTo("frog"));
+            Assert.That(catalog.Definitions[1].Id, Is.EqualTo("snake"));
+            Assert.That(catalog.Definitions[2].Id, Is.EqualTo("rabbit"));
+            Assert.That(catalog.Definitions[2].Movement, Is.SameAs(catalog.Definitions[0].Movement));
+            Assert.That(catalog.Definitions[0].SpawnWeight, Is.EqualTo(0.45f));
+            Assert.That(catalog.Definitions[1].SpawnWeight, Is.EqualTo(0.30f));
+            Assert.That(catalog.Definitions[2].SpawnWeight, Is.EqualTo(0.25f));
+        }
+
         private T Track<T>(T obj) where T : Object
         {
             _created.Add(obj);
@@ -139,7 +175,8 @@ namespace ZooWorld.Tests.EditMode
         }
 
         private AnimalDefinition Definition(Role role, int strength, MovementBehaviour? movement,
-            float spawnWeight, float size, float mass, float speed, float jumpDistance, float jumpInterval)
+            float spawnWeight, float size, float mass, float speed, float jumpDistance, float jumpInterval,
+            Color color)
         {
             AnimalDefinition def = Track(ScriptableObject.CreateInstance<AnimalDefinition>());
             SetField(def, "_role", role);
@@ -151,6 +188,7 @@ namespace ZooWorld.Tests.EditMode
             SetField(def, "_speed", speed);
             SetField(def, "_jumpDistance", jumpDistance);
             SetField(def, "_jumpInterval", jumpInterval);
+            SetField(def, "_color", color);
             return def;
         }
 

@@ -176,6 +176,9 @@ per unordered pair, early-outing if either is already `dead`. Mechanism: guardra
 | Spawn clearance / max attempts | ~1 m / 10 | prov. |
 | Animal pool prewarm / max | derived per definition: round(spawnWeight × maxPopulation) / max ≥ maxPopulation | prov. |
 | "Tasty!" label lifetime / pool | 1.0 s / 16 | prov. |
+| Jump-arc height / duration (visual hop) | 0.5 m / 0.45 s | prov. (T09) |
+| Spawn scale-in duration | 0.2 s | prov. (T09) |
+| Death-puff lifetime | 0.4 s | prov. (T09) |
 | Animal size | ~1 m | prov. |
 
 ## 10. Flow

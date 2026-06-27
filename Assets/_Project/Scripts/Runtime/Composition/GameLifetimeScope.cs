@@ -32,6 +32,11 @@ namespace ZooWorld.Composition
         [SerializeField] private HudView _hudView = null!;
         [SerializeField] private Transform _animalsRoot = null!;
 
+        [Header("Feedback refs")]
+        [SerializeField] private TastyLabel _tastyPrefab = null!;
+        [SerializeField] private DeathPuff _puffPrefab = null!;
+        [SerializeField] private Transform _effectsRoot = null!;
+
         [Header("Spawn placement")]
         [Tooltip("The Animal physics layer queried for spawn clearance.")]
         [SerializeField] private LayerMask _animalMask;
@@ -50,6 +55,7 @@ namespace ZooWorld.Composition
             SimulationTuning simTuning = CatalogProjection.BuildSimulationTuning(_config);
             FieldBounds bounds = FieldBoundsFactory.FromTopDownCamera(_camera.transform.position,
                 _camera.fieldOfView, _camera.aspect, _groundY, _config.FieldInnerMargin);
+            FeedbackTuning feedback = CatalogProjection.BuildFeedbackTuning(_config);
 
             // Seams (factory lambdas where a ctor arg isn't DI-resolvable).
             builder.Register<IClock, UnityClock>(Lifetime.Singleton);
@@ -59,6 +65,9 @@ namespace ZooWorld.Composition
 
             // Death channel — ONE registration, both contracts (publisher + subscribers share the instance).
             builder.Register<AnimalDeathSignal>(Lifetime.Singleton).AsSelf().As<IAnimalDeathSignal>();
+
+            // Eat channel ("Tasty!") — ONE registration, both contracts (mirrors the death channel).
+            builder.Register<PredatorAteSignal>(Lifetime.Singleton).AsSelf().As<IPredatorAteSignal>();
 
             // Rules / services.
             builder.Register<FoodChainResolver>(Lifetime.Singleton);
@@ -74,11 +83,17 @@ namespace ZooWorld.Composition
             // drives every service exposed as a marker interface, factory lambda included.
             builder.RegisterEntryPoint<HudPresenter>(Lifetime.Singleton);
             builder.RegisterEntryPoint<Simulation>(c => new Simulation(c.Resolve<IClock>(), c.Resolve<IRandom>(),
-                in bounds, in simTuning, c.Resolve<FoodChainResolver>(), c.Resolve<AnimalDeathSignal>(),
-                c.Resolve<AnimalFactory>()), Lifetime.Singleton).AsSelf();
+                in bounds, in simTuning, in feedback, c.Resolve<FoodChainResolver>(), c.Resolve<AnimalDeathSignal>(),
+                c.Resolve<PredatorAteSignal>(), c.Resolve<AnimalFactory>()), Lifetime.Singleton).AsSelf();
             builder.RegisterEntryPoint<Spawner>(c => new Spawner(c.Resolve<SpawnPlanner>(),
                 c.Resolve<AnimalFactory>(), c.Resolve<Simulation>(), c.Resolve<IOccupancyQuery>(),
                 c.Resolve<IRandom>(), in bounds), Lifetime.Singleton);
+
+            // Feedback subscribers (T09) — pooled "Tasty!" labels + death puffs under the effects root.
+            builder.RegisterEntryPoint<TastyLabelSpawner>(c => new TastyLabelSpawner(
+                c.Resolve<IPredatorAteSignal>(), _tastyPrefab, _config, _effectsRoot), Lifetime.Singleton);
+            builder.RegisterEntryPoint<DeathPuffSpawner>(c => new DeathPuffSpawner(
+                c.Resolve<IAnimalDeathSignal>(), _puffPrefab, _config, _effectsRoot), Lifetime.Singleton);
         }
     }
 }

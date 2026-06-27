@@ -24,6 +24,13 @@ namespace ZooWorld.Animals
         /// <summary>Clock time (s) at which the next leap may begin (jump strategy).</summary>
         public float NextLeapTime;
 
+        /// <summary>
+        /// Clock time (s) at which the current leap began — drives the cosmetic visual hop arc (T09).
+        /// <see cref="float.NegativeInfinity"/> means grounded (no leap in progress); seeded by
+        /// <c>SpawnSeed</c> and set by <c>JumpMove</c> on each burst.
+        /// </summary>
+        public float LeapStartTime;
+
         /// <summary>Clock time (s) until which strategy velocity is suppressed (post-bounce grace).</summary>
         public float GraceUntil;
     }

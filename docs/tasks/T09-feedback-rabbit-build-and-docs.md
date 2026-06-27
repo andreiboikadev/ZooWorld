@@ -5,7 +5,7 @@
 | Milestone | M3 — ship |
 | Depends on | T08 (vertical slice + composition root + scene) — also consumes T02 `JumpMove` SO, T03 `Outcome.RaiseTasty`, T05 `AnimalDied`/`IAnimalDeathSignal` channel, T07 `Simulation` drain |
 | Touches scene/prefabs | **yes** — `Assets/_Project/Prefabs/Animal.prefab` (child-mesh restructure); new `Prefabs/TastyLabel.prefab` + `Prefabs/DeathPuff.prefab`; `Scenes/Gameplay.unity` (effects root + new scope refs); `ProjectSettings` (Standalone build target + scenes-in-build); new `ScriptableObjects/Rabbit.asset` |
-| Status | ▫ not started |
+| Status | ✅ done — pending commit |
 
 ## Goal
 
@@ -331,4 +331,43 @@ authored scene; no >3 species (Rabbit is the data-only proof, not a content push
 
 ## What was actually done
 
-— *(filled on close: what shipped, deviations, the commit, the date.)*
+**Implemented 2026-06-27** — the full M3 feedback + Rabbit + Windows build + docs, per the validated
+(adversarially-reviewed) brief. **The submission is feature-complete.**
+
+- **Colour (§A):** `AnimalSpec.Color` + the `CatalogProjection` projection + `Animal`'s `MaterialPropertyBlock`
+  on `_BaseColor` (URP), null-guarded headless. `Animal.prefab` restructured — the mesh moved onto a child
+  `Mesh` GameObject (root keeps Rigidbody + SphereCollider on layer 8).
+- **Jump arc (§B):** pure `JumpArc.Height` + `MovementState.LeapStartTime` (seeded `-inf` in `SpawnSeed`, set in
+  `JumpMove`) + the **null-guarded** `Simulation.FixedTick` child-mesh-Y write; `SimConfig` gained the 6 feedback
+  fields (curves with C# initializers); `FeedbackTuning` + `CatalogProjection.BuildFeedbackTuning`.
+- **"Tasty!" (§C):** the `PredatorAte` Observer channel (4 files mirroring `AnimalDied`); `Simulation.ApplyDeath`
+  raises it at the **survivor** on `outcome.RaiseTasty`; `UI/TastyLabel` (TextMesh, fixed billboard) + `TastyLabelSpawner`.
+- **Spawn-pop + death-puff (§D):** the `Animal` CTS (fresh-on-take, cancel-on-despawn) + `SetSpawnScale`, kicked from
+  `Simulation.Register`; `UI/DeathPuff` (transparent URP material, MPB alpha) + `DeathPuffSpawner` (2nd `AnimalDied` subscriber).
+- **Lerp helper (§E):** `Core/FeedbackLerp.RunAsync` (UniTask, cancellation-clean, method-group apply).
+- **Rabbit (§F):** `Rabbit.asset` (Prey, **reuses the Frog's `JumpMove`**, weight 0.25, sand colour) appended to
+  `AnimalCatalog.asset` — **zero code**. Catalog now Frog/Snake/Rabbit (0.45/0.30/0.25).
+- **Wiring (§G):** `GameLifetimeScope` binds `PredatorAteSignal` (dual-exposed), the feedback tuning, and the two
+  spawner entry points; `Gameplay.unity` gained an `Effects` root + the 3 new refs.
+- **Build + docs (§H/§I):** prefabs `TastyLabel`/`DeathPuff` + the restructured `Animal`; **StandaloneWindows64**
+  build (`Builds/Windows/ZooWorld.exe`, git-ignored; company "Andrei Boika", product "Zoo World", scene 0);
+  `ARCHITECTURE.md` (new — with the "how to add a new animal" walkthrough) + `README`/`docs/INDEX` updates; the 4 §9 feedback rows.
+- **+11 EditMode tests** (`JumpArcTests` 6 + `CatalogProjection` BuildFeedbackTuning + Rabbit-data-only + colour
+  asserts; `SimulationTests` Tasty channel 3) → suite **133/133 green**.
+
+**Deviations from the brief:** none material. Implementation detail not spelled out: `Animal.OnSpawn` also collapses
+the child mesh to `localScale = zero` so the spawn scale-in pops cleanly from 0 (the brief specified only the
+`localPosition` reset). The death-puff prewarm (8) and the Tasty rise distance (1 m) are small label-local cosmetic
+constants (not §9 sim tunables).
+
+**Verification (this session, via MCP):** **EditMode 133/133 green** (3.4 s; 122 prior + 11 new). **Play smoke**
+(`Gameplay.unity`): animals spawn on cadence (active ~11, predator-floor holds); prey green/sand vs predator red
+(`MaterialPropertyBlock`); the jump arc lifts the child mesh (≈0.4 of the 0.5 m height); on each eat a **"Tasty!"**
+label rises+fades at the predator + a **death puff** scales+fades at the victim; HUD counters tick ("Dead prey: 36" /
+"Dead predators: 12"); Rabbit spawns + behaves; **Console clean**. **Windows build** launches + runs, **Player.log clean**
+(0 exceptions). *(Note: the in-editor Play smoke needs a clean container build — entering Play while the heavy asset/
+script import is still settling can leave the VContainer scope's async spawn loop stalled; a fresh Play entry resolves
+it. The standalone player is unaffected.)*
+
+**Commit proposed:** `feat: T09 feedback + Rabbit + MaterialPropertyBlock colour + Windows build + ARCHITECTURE`
+— _pending human commit_.

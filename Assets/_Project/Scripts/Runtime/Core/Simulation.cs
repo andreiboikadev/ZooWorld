@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using VContainer.Unity;
 using ZooWorld.Animals;
@@ -14,9 +15,10 @@ namespace ZooWorld.Core
     /// The single service that owns the FixedUpdate tick (guardrails §2; ADR 0002 §3 KEYSTONE): it ticks
     /// every active animal's movement strategy, applies the resulting velocity (driving continuous movers,
     /// coasting the jumper's burst, suppressing strategy velocity during the post-bounce grace, steering
-    /// back at the bounds), then drains the end-of-step collision queue — resolving each pair through the
-    /// pure <see cref="FoodChainResolver"/>, despawning the dead, raising <c>AnimalDied</c>, and applying
-    /// the prey×prey separation impulse + grace. A plain VContainer scope-singleton (not a MonoBehaviour);
+    /// back at the bounds), samples the cosmetic jump-arc into the jumper's child mesh, then drains the
+    /// end-of-step collision queue — resolving each pair through the pure <see cref="FoodChainResolver"/>,
+    /// despawning the dead, raising <c>AnimalDied</c> + (for an eat) <c>PredatorAte</c>, and applying the
+    /// prey×prey separation impulse + grace. A plain VContainer scope-singleton (not a MonoBehaviour);
     /// collisions reach it via <see cref="IContactSink"/> from the dumb <c>Animal</c> adapter.
     /// </summary>
     public sealed class Simulation : IFixedTickable, IContactSink, IDisposable
@@ -25,22 +27,27 @@ namespace ZooWorld.Core
         private readonly IRandom _random;
         private readonly FieldBounds _bounds;
         private readonly SimulationTuning _tuning;
+        private readonly FeedbackTuning _feedback;
         private readonly FoodChainResolver _resolver;
         private readonly AnimalDeathSignal _deathSignal;
+        private readonly PredatorAteSignal _ateSignal;
         private readonly AnimalFactory _factory;
         private readonly List<Animal> _active = new List<Animal>();
         private readonly List<(Animal a, Animal b)> _pendingPairs = new List<(Animal a, Animal b)>();
         private readonly HashSet<(long, long)> _pendingKeys = new HashSet<(long, long)>();
 
         public Simulation(IClock clock, IRandom random, in FieldBounds bounds, in SimulationTuning tuning,
-            FoodChainResolver resolver, AnimalDeathSignal deathSignal, AnimalFactory factory)
+            in FeedbackTuning feedback, FoodChainResolver resolver, AnimalDeathSignal deathSignal,
+            PredatorAteSignal ateSignal, AnimalFactory factory)
         {
             _clock = clock;
             _random = random;
             _bounds = bounds;
             _tuning = tuning;
+            _feedback = feedback;
             _resolver = resolver;
             _deathSignal = deathSignal;
+            _ateSignal = ateSignal;
             _factory = factory;
         }
 
@@ -68,8 +75,9 @@ namespace ZooWorld.Core
 
         /// <summary>
         /// Registers a freshly spawned animal: seeds its movement state (heading + leap/reroll clocks), wires
-        /// its collision sink, warms the cached body, and adds it to the active list. Called by the spawner
-        /// on each take (T08); the tests call it directly.
+        /// its collision sink, warms the cached body, adds it to the active list, and kicks the spawn scale-in
+        /// (a one-shot UniTask lerp tied to the animal's despawn-cancelled token). Called by the spawner on
+        /// each take (T08); the tests call it directly.
         /// </summary>
         public void Register(Animal animal)
         {
@@ -80,6 +88,10 @@ namespace ZooWorld.Core
             _ = animal.Body;
 
             _active.Add(animal);
+
+            // Spawn scale-in (T09) — cancelled on despawn (guardrails §11); no-op headless (null mesh).
+            FeedbackLerp.RunAsync(_feedback.SpawnPopDuration, _feedback.PopEase, animal.SetSpawnScale,
+                animal.Token).Forget();
         }
 
         /// <inheritdoc/>
@@ -142,6 +154,19 @@ namespace ZooWorld.Core
                     case DriveMode.None:
                         break;
                 }
+
+                // Cosmetic visual hop (T09): sample the arc into the child mesh's local Y. Null-guarded —
+                // headless test animals have no Mesh child; the body Y stays frozen (guardrails §8). Jumpers only.
+                if (movement.IsImpulseDriven)
+                {
+                    Transform mesh = animal.Mesh;
+                    if (mesh != null)
+                    {
+                        mesh.localPosition = new Vector3(0f, JumpArc.Height(_clock.Now,
+                            animal.MovementState.LeapStartTime, _feedback.JumpArcDuration,
+                            _feedback.JumpArcHeight, _feedback.JumpArc), 0f);
+                    }
+                }
             }
 
             DrainContacts();
@@ -199,6 +224,15 @@ namespace ZooWorld.Core
 
             // Source from transform.position (what OnSpawn writes; physics-synced in Play) before despawn.
             Vector3 deathPosition = victim.transform.position;
+
+            // "Tasty!" goes at the SURVIVOR (the predator), not the victim — gated on the resolver's
+            // RaiseTasty (true for prey×predator AND predator×predator), read before despawn (T09; GDD §6/§8).
+            if (outcome.RaiseTasty)
+            {
+                Animal survivor = ReferenceEquals(victim, a) ? b : a;
+                _ateSignal.Raise(new PredatorAte(survivor.transform.position));
+            }
+
             victim.MarkDead();
             _deathSignal.Raise(new AnimalDied(outcome.VictimRole, deathPosition));
             _active.Remove(victim);

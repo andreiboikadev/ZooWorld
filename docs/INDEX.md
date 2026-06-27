@@ -16,7 +16,8 @@ Last verified: 2026-06-25
 | `handoff/current-status.md` | Current active state | End of every session |
 
 ## Start here
-Front door: [`../README.md`](../README.md).
+Front door: [`../README.md`](../README.md); architecture write-up + "how to add a new animal":
+[`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 1. `../CLAUDE.md`
 2. `handoff/current-status.md`
 3. `product/game-design.md`

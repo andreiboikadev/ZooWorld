@@ -31,6 +31,7 @@ namespace ZooWorld.Animals
             {
                 state.Heading = MovementHeading.RandomXz(ctx.Rng);
                 state.NextLeapTime = ctx.Clock.Now + tuning.JumpInterval;
+                state.LeapStartTime = ctx.Clock.Now;
                 return state.Heading * JumpMath.BurstSpeed(tuning.JumpDistance, tuning.LinearDamping);
             }
 

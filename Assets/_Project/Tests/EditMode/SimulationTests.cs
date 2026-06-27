@@ -21,12 +21,14 @@ namespace ZooWorld.Tests.EditMode
     {
         private readonly List<MovementBehaviour> _strategySos = new List<MovementBehaviour>();
         private readonly List<AnimalDied> _deaths = new List<AnimalDied>();
+        private readonly List<PredatorAte> _ates = new List<PredatorAte>();
 
         private GameObject _prefabGo = null!;
         private Animal _prefab = null!;
         private FakeClock _clock = null!;
         private FakeRandom _random = null!;
         private AnimalDeathSignal _signal = null!;
+        private PredatorAteSignal _ateSignal = null!;
         private Simulation? _sim;
         private AnimalFactory? _factory;
 
@@ -39,7 +41,10 @@ namespace ZooWorld.Tests.EditMode
             _random = new FakeRandom();
             _signal = new AnimalDeathSignal();
             _signal.Died += OnDied;
+            _ateSignal = new PredatorAteSignal();
+            _ateSignal.Ate += OnAte;
             _deaths.Clear();
+            _ates.Clear();
         }
 
         [TearDown]
@@ -241,6 +246,55 @@ namespace ZooWorld.Tests.EditMode
         }
 
         [Test]
+        public void Drain_PredatorEatsPrey_RaisesTastyAtPredator()
+        {
+            AnimalFactory factory = MakeFactory(PredatorSpec(5, Strategy<LinearMove>()), PreySpec(Strategy<JumpMove>()));
+            Simulation sim = MakeSim(factory);
+            Animal predator = SpawnRegister(factory, sim, 0, new Vector3(1f, 0f, 1f));
+            Animal prey = SpawnRegister(factory, sim, 1, new Vector3(3f, 0f, 4f));
+            Enqueue(sim, predator, prey);
+
+            sim.FixedTick();
+
+            Assert.That(_ates.Count, Is.EqualTo(1));
+            Assert.That(_ates[0].Position, Is.EqualTo(new Vector3(1f, 0f, 1f)));
+            Assert.That(_deaths.Count, Is.EqualTo(1));
+            Assert.That(_deaths[0].Role, Is.EqualTo(Role.Prey));
+        }
+
+        [Test]
+        public void Drain_PredatorDuel_RaisesTastyAtWinner()
+        {
+            AnimalFactory factory = MakeFactory(PredatorSpec(5, Strategy<LinearMove>()), PredatorSpec(1, Strategy<LinearMove>()));
+            Simulation sim = MakeSim(factory);
+            Animal strong = SpawnRegister(factory, sim, 0, new Vector3(2f, 0f, 2f));
+            Animal weak = SpawnRegister(factory, sim, 1, new Vector3(5f, 0f, 5f));
+            Enqueue(sim, strong, weak);
+
+            sim.FixedTick();
+
+            Assert.That(_ates.Count, Is.EqualTo(1));
+            Assert.That(_ates[0].Position, Is.EqualTo(new Vector3(2f, 0f, 2f)));
+            Assert.That(_deaths.Count, Is.EqualTo(1));
+            Assert.That(_deaths[0].Role, Is.EqualTo(Role.Predator));
+        }
+
+        [Test]
+        public void Drain_PreyVsPrey_RaisesNoTasty()
+        {
+            AnimalFactory factory = MakeFactory(PreySpec(Strategy<JumpMove>()));
+            Simulation sim = MakeSim(factory);
+            Animal a = SpawnRegister(factory, sim, 0, new Vector3(1f, 0f, 0f));
+            Animal b = SpawnRegister(factory, sim, 0, new Vector3(2f, 0f, 0f));
+            Enqueue(sim, a, b);
+
+            sim.FixedTick();
+
+            Assert.That(_ates.Count, Is.EqualTo(0));
+            Assert.That(_deaths.Count, Is.EqualTo(0));
+        }
+
+        [Test]
         public void Despawn_Twice_NoDoublePush()
         {
             AnimalFactory factory = MakeFactory(PreySpec(Strategy<JumpMove>()));
@@ -291,12 +345,12 @@ namespace ZooWorld.Tests.EditMode
 
         private AnimalSpec PreySpec(MovementBehaviour movement)
         {
-            return new AnimalSpec(Role.Prey, 0, 1f, 1f, 0.5f, movement, MoveTuning());
+            return new AnimalSpec(Role.Prey, 0, 1f, 1f, Color.white, 0.5f, movement, MoveTuning());
         }
 
         private AnimalSpec PredatorSpec(int strength, MovementBehaviour movement)
         {
-            return new AnimalSpec(Role.Predator, strength, 1f, 1f, 0.5f, movement, MoveTuning());
+            return new AnimalSpec(Role.Predator, strength, 1f, 1f, Color.white, 0.5f, movement, MoveTuning());
         }
 
         private T Strategy<T>() where T : MovementBehaviour
@@ -315,8 +369,15 @@ namespace ZooWorld.Tests.EditMode
         private Simulation MakeSim(AnimalFactory factory)
         {
             _sim = new Simulation(_clock, _random, new FieldBounds(Vector3.zero, new Vector2(10f, 6f), 1f),
-                new SimulationTuning(4f, 0.6f), new FoodChainResolver(), _signal, factory);
+                new SimulationTuning(4f, 0.6f), MakeFeedback(), new FoodChainResolver(), _signal, _ateSignal,
+                factory);
             return _sim;
+        }
+
+        private static FeedbackTuning MakeFeedback()
+        {
+            AnimationCurve curve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+            return new FeedbackTuning(0.5f, 0.45f, curve, 0.2f, curve);
         }
 
         private Animal SpawnRegister(AnimalFactory factory, Simulation sim, int index, Vector3 position)
@@ -334,6 +395,11 @@ namespace ZooWorld.Tests.EditMode
         private void OnDied(in AnimalDied e)
         {
             _deaths.Add(e);
+        }
+
+        private void OnAte(in PredatorAte e)
+        {
+            _ates.Add(e);
         }
     }
 }

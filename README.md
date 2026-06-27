@@ -4,9 +4,9 @@ A small **3D top-down primitives sim**: animals spawn over time, roam, and a sim
 out through physics collisions. Built as a Senior Unity test task whose graded focus is the
 **animal architecture** — clear, SOLID, and easy to extend "as if we'll add 1000 animals".
 
-> **Status:** in development. The architecture + plan are locked and documented; gameplay
-> implementation is starting from task T01. (A fuller `ARCHITECTURE.md` with a "how to add a new
-> animal" walkthrough ships with the final build — see `docs/tasks/README.md`, T09.)
+> **Status:** feature-complete (M3). Spawn → roam → predation → feedback runs; prey/predator colour, the
+> "Tasty!" label, a death puff, the frog/rabbit hop, and the dead-prey/dead-predator counters are all live.
+> Design + a "how to add a new animal" walkthrough: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Stack
 
@@ -17,7 +17,8 @@ out through physics collisions. Built as a Senior Unity test task whose graded f
 ## Run
 
 1. Open the project in **Unity 6000.3.16f1** (Unity restores the packages on first open).
-2. Press **Play**. (A standalone Windows build ships with the final deliverable.)
+2. Press **Play** — or run the standalone **Windows build** (`Builds/Windows/ZooWorld.exe`, produced via
+   File → Build; not committed to git — attached to the submission).
 
 ## Test
 
@@ -33,6 +34,8 @@ Composition over inheritance: an `Animal` is a thin adapter holding an `AnimalDe
 seams** (so they're unit-testable without the engine); predation is resolved deterministically in an
 end-of-step drain; animals + labels are pooled. Patterns shown: **Strategy** (movement),
 **Factory + Object Pool**, **Observer** (events → counters/labels), **DI** (VContainer).
+
+Full write-up + the **"how to add a new animal"** walkthrough: **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 
 ## Documentation
 

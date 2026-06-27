@@ -1,5 +1,6 @@
 #nullable enable
 
+using UnityEngine;
 using ZooWorld.Config;
 
 namespace ZooWorld.Core
@@ -12,13 +13,14 @@ namespace ZooWorld.Core
     /// </summary>
     public readonly struct AnimalSpec
     {
-        public AnimalSpec(Role role, int strength, float size, float mass, float spawnWeight,
+        public AnimalSpec(Role role, int strength, float size, float mass, Color color, float spawnWeight,
             MovementBehaviour? movement, in MovementTuning tuning)
         {
             Role = role;
             Strength = strength;
             Size = size;
             Mass = mass;
+            Color = color;
             SpawnWeight = spawnWeight;
             Movement = movement;
             Tuning = tuning;
@@ -35,6 +37,9 @@ namespace ZooWorld.Core
 
         /// <summary>Rigidbody mass (kg).</summary>
         public float Mass { get; }
+
+        /// <summary>Body colour, applied via <c>MaterialPropertyBlock</c> at spawn (visual only, T09).</summary>
+        public Color Color { get; }
 
         /// <summary>Relative weight in the spawn lottery — drives the pool prewarm count.</summary>
         public float SpawnWeight { get; }
