@@ -15,6 +15,14 @@ namespace ZooWorld.Config
     public abstract class MovementBehaviour : ScriptableObject
     {
         /// <summary>
+        /// Whether the <c>Simulation</c> applies this strategy's velocity as a one-shot impulse
+        /// (<c>AddForce(VelocityChange)</c>) rather than a continuous velocity set — true for burst/leap
+        /// movers (the jump), false (the default) for continuous movers. Lets the tick pick the apply mode
+        /// without type-switching on the concrete strategy.
+        /// </summary>
+        public virtual bool IsImpulseDriven => false;
+
+        /// <summary>
         /// Advance <paramref name="state"/> and return the desired XZ velocity (m/s) for this tick.
         /// Pure logic — must not touch Unity statics (<c>Time</c>/<c>Random</c>/<c>Physics</c>);
         /// read time and randomness from <paramref name="ctx"/>.
