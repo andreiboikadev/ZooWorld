@@ -59,6 +59,22 @@ namespace ZooWorld.Config
         [Tooltip("\"Tasty!\" label pool size.")]
         [Min(1)]
         [SerializeField] private int _tastyPoolSize = 16;
+        [Tooltip("Jump-arc peak height (m) — the cosmetic child-mesh hop (T09).")]
+        [Min(0f)]
+        [SerializeField] private float _jumpArcHeight = 0.5f;
+        [Tooltip("Jump-arc duration (s) — cosmetic, independent of the physics coast.")]
+        [Min(0f)]
+        [SerializeField] private float _jumpArcDuration = 0.45f;
+        [Tooltip("Spawn scale-in duration (s).")]
+        [Min(0f)]
+        [SerializeField] private float _spawnPopDuration = 0.2f;
+        [Tooltip("Death-puff lifetime (s).")]
+        [Min(0f)]
+        [SerializeField] private float _deathPuffLifetime = 0.4f;
+        [Tooltip("Jump-arc shape — a hump (0 → 1 → 0) sampled by JumpArc for the visual hop.")]
+        [SerializeField] private AnimationCurve _jumpArcCurve = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.5f, 1f), new Keyframe(1f, 0f));
+        [Tooltip("Shared 0 → 1 ease for the spawn-pop / Tasty rise / death-puff fade.")]
+        [SerializeField] private AnimationCurve _riseEase = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
         /// <summary>Lower bound of the random spawn interval (s).</summary>
         public float SpawnIntervalMin => _spawnIntervalMin;
@@ -101,5 +117,23 @@ namespace ZooWorld.Config
 
         /// <summary>"Tasty!" label pool size.</summary>
         public int TastyPoolSize => _tastyPoolSize;
+
+        /// <summary>Jump-arc peak height (m) — the cosmetic child-mesh hop (T09).</summary>
+        public float JumpArcHeight => _jumpArcHeight;
+
+        /// <summary>Jump-arc duration (s) — cosmetic.</summary>
+        public float JumpArcDuration => _jumpArcDuration;
+
+        /// <summary>Spawn scale-in duration (s).</summary>
+        public float SpawnPopDuration => _spawnPopDuration;
+
+        /// <summary>Death-puff lifetime (s).</summary>
+        public float DeathPuffLifetime => _deathPuffLifetime;
+
+        /// <summary>Jump-arc shape (a hump 0 → 1 → 0).</summary>
+        public AnimationCurve JumpArcCurve => _jumpArcCurve;
+
+        /// <summary>Shared 0 → 1 ease for the spawn-pop / Tasty rise / death-puff fade.</summary>
+        public AnimationCurve RiseEase => _riseEase;
     }
 }

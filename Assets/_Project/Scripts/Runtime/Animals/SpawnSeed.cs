@@ -23,6 +23,7 @@ namespace ZooWorld.Animals
             state.Heading = MovementHeading.RandomXz(rng);
             state.NextLeapTime = clock.Now + tuning.JumpInterval;
             state.NextHeadingReroll = clock.Now + rng.Range(tuning.WanderRerollMin, tuning.WanderRerollMax);
+            state.LeapStartTime = float.NegativeInfinity;
         }
     }
 }

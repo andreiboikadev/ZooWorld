@@ -30,8 +30,8 @@ namespace ZooWorld.Composition
                 AnimalDefinition def = definitions[i];
                 MovementTuning tuning = new MovementTuning(def.Speed, def.JumpDistance, def.JumpInterval,
                     config.LinearDamping, config.WanderRerollMin, config.WanderRerollMax);
-                specs[i] = new AnimalSpec(def.Role, def.Strength, def.Size, def.Mass, def.SpawnWeight,
-                    def.Movement, tuning);
+                specs[i] = new AnimalSpec(def.Role, def.Strength, def.Size, def.Mass, def.Color,
+                    def.SpawnWeight, def.Movement, tuning);
                 weights[i] = new SpeciesWeight(def.Role, def.SpawnWeight);
             }
 
@@ -49,6 +49,13 @@ namespace ZooWorld.Composition
         public static SimulationTuning BuildSimulationTuning(SimConfig config)
         {
             return new SimulationTuning(config.BounceKick, config.GraceSeconds);
+        }
+
+        /// <summary>The feedback constants the <c>Simulation</c> samples in the tick (game-design.md §9, T09).</summary>
+        public static FeedbackTuning BuildFeedbackTuning(SimConfig config)
+        {
+            return new FeedbackTuning(config.JumpArcHeight, config.JumpArcDuration, config.JumpArcCurve,
+                config.SpawnPopDuration, config.RiseEase);
         }
     }
 }

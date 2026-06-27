@@ -355,6 +355,9 @@ MonoBehaviour:
   _camera: {fileID: 1840525936}
   _hudView: {fileID: 428127439}
   _animalsRoot: {fileID: 1169598529}
+  _tastyPrefab: {fileID: 3462951484480888054, guid: 67ada815bfe7c3e489bbd2e1d26f36f5, type: 3}
+  _puffPrefab: {fileID: 4031257843837474379, guid: 44a48747260cdc548a87491c9fabbaeb, type: 3}
+  _effectsRoot: {fileID: 652045914}
   _animalMask:
     serializedVersion: 2
     m_Bits: 256
@@ -424,6 +427,37 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.6, z: 0}
   m_LocalScale: {x: 40, y: 0.2, z: 24}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &652045913
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 652045914}
+  m_Layer: 0
+  m_Name: Effects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &652045914
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652045913}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -767,3 +801,4 @@ SceneRoots:
   - {fileID: 650777858}
   - {fileID: 428127440}
   - {fileID: 459248509}
+  - {fileID: 652045914}
